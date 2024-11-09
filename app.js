@@ -48,5 +48,12 @@ async function requestWakeLock() {
         }
     }
 }
-
+setInterval(() => {
+    if (!isPageVisible) {
+        console.log('Reloading page at:', new Date().toLocaleTimeString());
+        window.location.reload();
+    } else {
+        console.log('Page is visible, no reload at:', new Date().toLocaleTimeString());
+    }
+}, 10000);
 requestWakeLock();
