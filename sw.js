@@ -4,10 +4,12 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll([
-                '/notification/',
+                  '/notification/',
                 '/notification/index.html',
                 '/notification/app.js',
-                '/notification/manifest.json'
+                '/notification/manifest.json',
+                '/notification/icon.png',
+                '/notification/icon1.png'
             ]);
         })
     );
