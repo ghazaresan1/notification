@@ -5,14 +5,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/notification/sw.js')
             .then(() => {
-                // Request notification permission
                 return Notification.requestPermission();
             })
             .catch(console.error);
     }
 
-    // Redirect to the target URL
-    window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+    // Check if this is first time
+    if (!localStorage.getItem('hasLaunched')) {
+        localStorage.setItem('hasLaunched', 'true');
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+    } else {
+        window.location.href = 'https://portal.ghazaresan.com/orderlist';
+    }
 });
 
 // Handle page visibility
