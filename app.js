@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Redirect to the target URL
-    window.location.href = 'https://portal.ghazaresan.com/orderlist';
+    window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
 
 // Handle page visibility
