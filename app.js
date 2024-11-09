@@ -1,3 +1,4 @@
+let isPageVisible = true;
 document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker
     if ('serviceWorker' in navigator) {
