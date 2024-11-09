@@ -1,5 +1,3 @@
-let isPageVisible = true;
-
 document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -10,13 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(console.error);
     }
 
-    // Check if this is first time
-    if (!localStorage.getItem('hasLaunched')) {
-        localStorage.setItem('hasLaunched', 'true');
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
-    } else {
-        window.location.href = 'https://portal.ghazaresan.com/orderlist';
-    }
+    // Always open in new tab
+    window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
 
 // Handle page visibility
@@ -52,12 +45,5 @@ async function requestWakeLock() {
         }
     }
 }
-setInterval(() => {
-    if (!isPageVisible) {
-        console.log('Reloading page at:', new Date().toLocaleTimeString());
-        window.location.reload();
-    } else {
-        console.log('Page is visible, no reload at:', new Date().toLocaleTimeString());
-    }
-}, 10000);
+
 requestWakeLock();
