@@ -1,21 +1,6 @@
-// Create a message channel for portal detection
-const portalChannel = new BroadcastChannel('portal_detector');
-
-// Send message when on portal page
-if (window.location.href.includes('portal.ghazaresan.com')) {
-    portalChannel.postMessage('portal_active');
-}
-
-let portalIsActive = false;
-
-// Listen for portal status
-portalChannel.onmessage = () => {
-    portalIsActive = true;
-    // Reset after 15 seconds of no messages
-    setTimeout(() => {
-        portalIsActive = false;
-    }, 15000);
-};
+// Create a unique ID for this PWA instance
+const pwaId = 'pwa_' + Date.now();
+sessionStorage.setItem('activePWA', pwaId);
 
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
@@ -29,14 +14,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Initial open in new tab
-    if (!window.location.href.includes('portal.ghazaresan.com')) {
+    if (sessionStorage.getItem('activePWA') === pwaId) {
         window.open('https://portal.ghazaresan.com/', '_blank');
     }
 });
 
 // Set up periodic check
 setInterval(() => {
-    if (!portalIsActive && document.hidden) {
+    const isMainPWA = sessionStorage.getItem('activePWA') === pwaId;
+    if (isMainPWA && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
