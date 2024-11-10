@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
 
-// Set up periodic reload based on browser state
+// Set up periodic check
 setInterval(() => {
-    // Check if app is in background using Page Visibility API
-    if (document.hidden && 'hidden' in document) {
+    // Only open new tab when PWA is completely in background (recent apps)
+    if (document.hidden && !document.hasFocus()) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
