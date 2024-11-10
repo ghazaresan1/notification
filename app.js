@@ -1,6 +1,15 @@
 // Track if we're running in the PWA
 const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
+// Function to check if portal is focused in any tab
+function isPortalActive() {
+    try {
+        return window.top.location.href.includes('portal.ghazaresan.com');
+    } catch {
+        return false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
         try {
@@ -13,15 +22,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Initial open in new tab only from PWA
-    if (isPWA) {
+    if (isPWA && !isPortalActive()) {
         window.open('https://portal.ghazaresan.com/', '_blank');
     }
 });
 
 // Set up periodic check
 setInterval(() => {
-    // Only open new tabs when PWA is in recent apps (completely hidden)
-    if (isPWA && document.hidden && !document.hasFocus()) {
+    // Only open new tabs when PWA is in recent apps AND portal is not active
+    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive()) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
