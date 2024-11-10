@@ -1,11 +1,26 @@
-// Create a SharedWorker for reliable cross-tab communication
-const worker = new SharedWorker('portalWorker.js');
-let portalActive = false;
+// Create a shared storage for portal status
+const portalStatus = {
+    isActive: false
+};
 
-// When this page loads, check if it's the portal
-if (window.location.href.includes('portal.ghazaresan.com')) {
-    worker.port.postMessage({ type: 'portalActive', active: true });
+// Function to check if current URL is portal
+function isPortalURL() {
+    return window.location.href.startsWith('https://portal.ghazaresan.com');
 }
+
+// Set portal status when page loads
+if (isPortalURL()) {
+    portalStatus.isActive = true;
+    // Store in localStorage for cross-tab awareness
+    localStorage.setItem('portalActive', 'true');
+}
+
+// Listen for storage changes
+window.addEventListener('storage', (e) => {
+    if (e.key === 'portalActive') {
+        portalStatus.isActive = (e.newValue === 'true');
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
@@ -18,26 +33,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Initial open in new tab only if we're not on portal
-    if (!window.location.href.includes('portal.ghazaresan.com')) {
+    // Initial open in new tab only if not on portal
+    if (!isPortalURL()) {
         window.open('https://portal.ghazaresan.com/', '_blank');
     }
 });
 
-// Listen for portal status updates
-worker.port.onmessage = (e) => {
-    portalActive = e.data.active;
-};
-
-// Set up periodic check
+// Set up periodic check with enhanced portal detection
 setInterval(() => {
-    // Only open new tab when portal is not active and current page is hidden
+    const portalActive = localStorage.getItem('portalActive') === 'true' || isPortalURL();
     if (!portalActive && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
 
-// Request wake lock to keep screen active
+// Wake lock implementation
 async function requestWakeLock() {
     if ('wakeLock' in navigator && !document.hidden) {
         try {
@@ -52,6 +62,10 @@ async function requestWakeLock() {
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         requestWakeLock();
+    }
+    // Update portal status on visibility change
+    if (isPortalURL()) {
+        localStorage.setItem('portalActive', !document.hidden);
     }
 });
 
