@@ -9,9 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(console.error);
     }
 
-    // Always open in new tab
+    // Open in new tab
     window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
+
 
 // Handle page visibility
 document.addEventListener('visibilitychange', () => {
