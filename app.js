@@ -1,6 +1,21 @@
-// Create a dedicated PWA instance ID
-const pwaInstanceId = Date.now().toString();
-localStorage.setItem('currentPWA', pwaInstanceId);
+// Create a message channel for portal detection
+const portalChannel = new BroadcastChannel('portal_detector');
+
+// Send message when on portal page
+if (window.location.href.includes('portal.ghazaresan.com')) {
+    portalChannel.postMessage('portal_active');
+}
+
+let portalIsActive = false;
+
+// Listen for portal status
+portalChannel.onmessage = () => {
+    portalIsActive = true;
+    // Reset after 15 seconds of no messages
+    setTimeout(() => {
+        portalIsActive = false;
+    }, 15000);
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
@@ -19,17 +34,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Function to check if we should open new tab
-function shouldOpenNewTab() {
-    // Check if this is the main PWA instance
-    const isMainInstance = localStorage.getItem('currentPWA') === pwaInstanceId;
-    
-    return isMainInstance && document.hidden && !window.location.href.includes('portal.ghazaresan.com');
-}
-
 // Set up periodic check
 setInterval(() => {
-    if (shouldOpenNewTab()) {
+    if (!portalIsActive && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
