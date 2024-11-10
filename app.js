@@ -1,3 +1,17 @@
+// Create a BroadcastChannel for cross-tab communication
+const channel = new BroadcastChannel('portal_status');
+
+// When this page loads, check if it's the portal
+if (window.location.href.includes('portal.ghazaresan.com')) {
+    // Inform other tabs that portal is active
+    channel.postMessage({ active: true });
+    
+    // When this page becomes hidden
+    document.addEventListener('visibilitychange', () => {
+        channel.postMessage({ active: document.hidden ? false : true });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
         try {
@@ -9,19 +23,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Initial open in new tab
-    window.open('https://portal.ghazaresan.com/', '_blank');
+    // Initial open in new tab only if we're not on portal
+    if (!window.location.href.includes('portal.ghazaresan.com')) {
+        window.open('https://portal.ghazaresan.com/', '_blank');
+    }
 });
 
-// Function to check if current tab is portal
-function isPortalTab() {
-    return window.location.href.includes('portal.ghazaresan.com');
-}
+let portalActive = false;
+
+// Listen for portal status updates
+channel.onmessage = (event) => {
+    portalActive = event.data.active;
+};
 
 // Set up periodic check
 setInterval(() => {
-    // Only open new tab when browser is in background AND current tab is not portal
-    if (document.hidden && !document.hasFocus() && !isPortalTab()) {
+    // Only open new tab when portal is not active and current page is hidden
+    if (!portalActive && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
