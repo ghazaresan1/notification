@@ -1,4 +1,5 @@
 let isPageVisible = true;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -13,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
 
-
 // Handle page visibility
 document.addEventListener('visibilitychange', () => {
     isPageVisible = !document.hidden;
@@ -26,11 +26,19 @@ setInterval(() => {
     }
 }, 10000);
 
-// Keep-alive functionality
+// Keep-alive functionality with proper headers
 setInterval(() => {
     fetch('https://app.ghazaresan.com', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+            'securitykey': 'Asdiw2737y#376',
+            'Referer': 'https://portal.ghazaresan.com/'
+        }
     });
 }, 30000);
 
