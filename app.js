@@ -1,3 +1,7 @@
+// Create a dedicated PWA instance ID
+const pwaInstanceId = Date.now().toString();
+localStorage.setItem('currentPWA', pwaInstanceId);
+
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
         try {
@@ -15,10 +19,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Set up periodic check with direct URL check
+// Function to check if we should open new tab
+function shouldOpenNewTab() {
+    // Check if this is the main PWA instance
+    const isMainInstance = localStorage.getItem('currentPWA') === pwaInstanceId;
+    
+    return isMainInstance && document.hidden && !window.location.href.includes('portal.ghazaresan.com');
+}
+
+// Set up periodic check
 setInterval(() => {
-    // Only open new tab when NOT on portal and browser is in background
-    if (!window.location.href.includes('portal.ghazaresan.com') && document.hidden) {
+    if (shouldOpenNewTab()) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
