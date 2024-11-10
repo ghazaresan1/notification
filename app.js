@@ -13,33 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.open('https://portal.ghazaresan.com/', '_blank');
 });
 
-// Function to check if any portal tab exists
-function checkPortalTab() {
-    return new Promise(resolve => {
-        // Create a temporary iframe to check portal URL
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = 'https://portal.ghazaresan.com';
-        
-        iframe.onload = () => {
-            document.body.removeChild(iframe);
-            resolve(true); // Portal is accessible
-        };
-        
-        iframe.onerror = () => {
-            document.body.removeChild(iframe);
-            resolve(false); // Portal is not accessible
-        };
-        
-        document.body.appendChild(iframe);
-    });
-}
-
 // Set up periodic check
-setInterval(async () => {
-    const portalExists = await checkPortalTab();
-    if (!portalExists && document.hidden) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
+setInterval(() => {
+    // Open new tab if document is hidden (in background)
+    if (document.hidden) {
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
 
