@@ -28,7 +28,7 @@ setInterval(() => {
 
 // Keep-alive functionality
 setInterval(() => {
-    fetch('https://portal.ghazaresan.com/orderlist', {
+    fetch('https://app.ghazaresan.com', {
         method: 'GET',
         credentials: 'include'
     });
