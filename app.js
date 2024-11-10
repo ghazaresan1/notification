@@ -15,9 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Set up periodic check
 setInterval(() => {
-    // Open new tab if document is hidden (in background)
-    if (document.hidden) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+    // Only open new tab when browser is completely in background
+    if (document.hidden && !document.hasFocus()) {
+        window.open('https://portal.ghazaresan.com/', '_blank');
     }
 }, 10000);
 
