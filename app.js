@@ -18,9 +18,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Set up periodic check
 setInterval(() => {
     // Only open new tab when PWA is in background AND not already on portal
-    if (document.hasFocus() && window.location.href.includes('portal.ghazaresan.com')) {
+    if (!document.hasFocus() && !window.location.href.includes('portal.ghazaresan.com')) {
+ window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
-  window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+ 
 }, 10000);
 
 // Request wake lock to keep screen active
