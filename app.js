@@ -1,15 +1,10 @@
-// Create a BroadcastChannel for cross-tab communication
-const channel = new BroadcastChannel('portal_status');
+// Create a SharedWorker for reliable cross-tab communication
+const worker = new SharedWorker('portalWorker.js');
+let portalActive = false;
 
 // When this page loads, check if it's the portal
 if (window.location.href.includes('portal.ghazaresan.com')) {
-    // Inform other tabs that portal is active
-    channel.postMessage({ active: true });
-    
-    // When this page becomes hidden
-    document.addEventListener('visibilitychange', () => {
-        channel.postMessage({ active: document.hidden ? false : true });
-    });
+    worker.port.postMessage({ type: 'portalActive', active: true });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -29,11 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-let portalActive = false;
-
 // Listen for portal status updates
-channel.onmessage = (event) => {
-    portalActive = event.data.active;
+worker.port.onmessage = (e) => {
+    portalActive = e.data.active;
 };
 
 // Set up periodic check
@@ -46,16 +39,20 @@ setInterval(() => {
 
 // Request wake lock to keep screen active
 async function requestWakeLock() {
-    if ('wakeLock' in navigator) {
+    if ('wakeLock' in navigator && !document.hidden) {
         try {
             const wakeLock = await navigator.wakeLock.request('screen');
-            wakeLock.addEventListener('release', () => {
-                requestWakeLock();
-            });
+            console.log('Wake lock activated');
         } catch (err) {
             console.log('Wake Lock error:', err);
         }
     }
 }
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        requestWakeLock();
+    }
+});
 
 requestWakeLock();
