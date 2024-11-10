@@ -22,7 +22,7 @@ document.addEventListener('visibilitychange', () => {
 // Set up periodic reload and open new tab when page is in background
 setInterval(() => {
     if (!isPageVisible) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+        window.open('https://portal.ghazaresan.com/orderlist', '_self');
     }
 }, 10000);
 
