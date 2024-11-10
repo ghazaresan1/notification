@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial open in new tab
-    window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+    window.open('https://portal.ghazaresan.com/', '_blank');
 });
 
 // Set up periodic check
