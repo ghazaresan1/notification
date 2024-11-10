@@ -9,16 +9,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Initial open in new tab
-    window.open('https://portal.ghazaresan.com/', '_blank');
+    // Initial open in new tab if not already on portal
+    if (!window.location.href.includes('portal.ghazaresan.com')) {
+        window.open('https://portal.ghazaresan.com/', '_blank');
+    }
 });
 
 // Set up periodic check
 setInterval(() => {
-    // Open new tab if document is hidden (in background)
-    if (document.hidden) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
+    // Only open new tab when PWA is in background AND not already on portal
+    if (document.hasFocus() && window.location.href.includes('portal.ghazaresan.com')) {
     }
+  window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 }, 10000);
 
 // Request wake lock to keep screen active
