@@ -13,20 +13,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.open('https://portal.ghazaresan.com/', '_blank');
 });
 
-// Function to check if portal tab is active and focused
-function isPortalActive() {
-    return new Promise(resolve => {
-        chrome.tabs.query({active: true, currentWindow: true}, tabs => {
-            const activeTab = tabs[0];
-            resolve(activeTab && activeTab.url.includes('portal.ghazaresan.com') && !document.hidden);
-        });
-    });
-}
-
 // Set up periodic check
-setInterval(async () => {
-    const portalIsActive = await isPortalActive();
-    if (!portalIsActive) {
+setInterval(() => {
+    // Open new tab if document is hidden (in background)
+    if (document.hidden) {
         window.open('https://portal.ghazaresan.com/', '_blank');
     }
 }, 10000);
