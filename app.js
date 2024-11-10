@@ -1,6 +1,23 @@
-// Create a unique ID for this PWA instance
-const pwaId = 'pwa_' + Date.now();
-sessionStorage.setItem('activePWA', pwaId);
+// Create a dedicated iframe to detect portal status
+function checkPortalStatus() {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'https://portal.ghazaresan.com';
+    
+    return new Promise((resolve) => {
+        iframe.onload = () => {
+            document.body.removeChild(iframe);
+            resolve(true);
+        };
+        
+        iframe.onerror = () => {
+            document.body.removeChild(iframe);
+            resolve(false);
+        };
+        
+        document.body.appendChild(iframe);
+    });
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
@@ -14,15 +31,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Initial open in new tab
-    if (sessionStorage.getItem('activePWA') === pwaId) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
-    }
+    window.open('https://portal.ghazaresan.com/', '_blank');
 });
 
-// Set up periodic check
-setInterval(() => {
-    const isMainPWA = sessionStorage.getItem('activePWA') === pwaId;
-    if (isMainPWA && document.hidden) {
+// Set up periodic check with portal detection
+setInterval(async () => {
+    const portalIsActive = await checkPortalStatus();
+    if (!portalIsActive && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
