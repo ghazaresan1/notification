@@ -19,28 +19,12 @@ document.addEventListener('visibilitychange', () => {
     isPageVisible = !document.hidden;
 });
 
-// Set up periodic reload when page is in background
+// Set up periodic reload and open new tab when page is in background
 setInterval(() => {
     if (!isPageVisible) {
-        window.location.reload();
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
-
-// Keep-alive functionality with proper headers
-setInterval(() => {
-    fetch('https://app.ghazaresan.com', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json',
-            'securitykey': 'Asdiw2737y#376',
-            'Referer': 'https://portal.ghazaresan.com/'
-        }
-    });
-}, 30000);
 
 // Request wake lock to keep screen active
 async function requestWakeLock() {
