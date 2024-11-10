@@ -13,11 +13,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.open('https://portal.ghazaresan.com/', '_blank');
 });
 
+// Function to check if current tab is portal
+function isPortalTab() {
+    return window.location.href.includes('portal.ghazaresan.com');
+}
+
 // Set up periodic check
 setInterval(() => {
-    // Only open new tab when browser is completely in background
-    if (document.hidden && !document.hasFocus()) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
+    // Only open new tab when browser is in background AND current tab is not portal
+    if (document.hidden && !document.hasFocus() && !isPortalTab()) {
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
 
