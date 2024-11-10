@@ -1,5 +1,3 @@
-let isPageVisible = true;
-
 document.addEventListener('DOMContentLoaded', () => {
     // Register Service Worker
     if ('serviceWorker' in navigator) {
@@ -14,15 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open('https://portal.ghazaresan.com/orderlist', '_blank');
 });
 
-// Handle page visibility
-document.addEventListener('visibilitychange', () => {
-    isPageVisible = !document.hidden;
-});
-
-// Set up periodic reload and open new tab when page is in background
+// Set up periodic reload based on browser visibility
 setInterval(() => {
-    if (!isPageVisible) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_self');
+    if (!document.hasFocus()) {
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
 
