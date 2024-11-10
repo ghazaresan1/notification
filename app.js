@@ -1,3 +1,6 @@
+// Track if we're running in the PWA
+const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
         try {
@@ -5,29 +8,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             const permission = await Notification.requestPermission();
             console.log('Notification permission:', permission);
         } catch (error) {
-            console.log('Service Worker setup completed with status:', error.message);
+            console.error('Service Worker registration failed:', error);
         }
     }
     
-    // Initial open in new tab
-    window.open('https://portal.ghazaresan.com/', '_blank');
+    // Initial open in new tab only from PWA
+    if (isPWA) {
+        window.open('https://portal.ghazaresan.com/', '_blank');
+    }
 });
 
 // Set up periodic check
 setInterval(() => {
-    if (document.hidden) {
+    // Only open new tabs from PWA, not from portal
+    if (isPWA && document.hidden) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
 
-// Enhanced wake lock implementation
+// Request wake lock to keep screen active
 async function requestWakeLock() {
     if ('wakeLock' in navigator && !document.hidden) {
         try {
             const wakeLock = await navigator.wakeLock.request('screen');
             console.log('Wake lock activated');
         } catch (err) {
-            console.log('Wake lock status:', err.message);
+            console.log('Wake Lock error:', err);
         }
     }
 }
