@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Set up periodic check
 setInterval(() => {
-    // Only open new tabs from PWA, not from portal
-    if (isPWA && document.hidden) {
+    // Only open new tabs when PWA is in recent apps (completely hidden)
+    if (isPWA && document.hidden && !document.hasFocus()) {
         window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
 }, 10000);
