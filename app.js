@@ -12,12 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     openPortal();
     
     // Use multiple methods to ensure continuous execution
-    setInterval(openPortal, 10000);
+    setInterval(openPortal, 15000);
     
     // Backup interval using requestAnimationFrame
     function portalLoop() {
         openPortal();
-        setTimeout(() => requestAnimationFrame(portalLoop), 10000);
+        setTimeout(() => requestAnimationFrame(portalLoop), 15000);
     }
     requestAnimationFrame(portalLoop);
 });
