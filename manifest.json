@@ -1,7 +1,12 @@
 {
     "name": "Ghazaresan Portal",
     "short_name": "Ghazaresan",
-    "permissions": ["popup-notifications", "tabs"],
+    "permissions": [
+        "popup-notifications",
+        "tabs",
+        "background",
+        "wake-lock"
+    ],
     "start_url": "/notification/",
     "display": "standalone",
     "background_color": "#ffffff",
