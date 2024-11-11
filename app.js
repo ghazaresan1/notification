@@ -1,16 +1,6 @@
 // PWA status detection
 const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
-// Store user preference in localStorage
-function setAutoOpenPreference() {
-    localStorage.setItem('allowAutoOpen', 'true');
-}
-
-// Check if auto-open is allowed
-function isAutoOpenAllowed() {
-    return localStorage.getItem('allowAutoOpen') === 'true';
-}
-
 // Portal activity check
 function isPortalActive() {
     try {
@@ -20,31 +10,8 @@ function isPortalActive() {
     }
 }
 
-// Initial setup to request permissions
-async function setupPermissions() {
-    if ('permissions' in navigator) {
-        try {
-            await navigator.permissions.query({ name: 'popup' });
-            setAutoOpenPreference();
-        } catch (error) {
-            console.log('Permission setup:', error);
-        }
-    }
-}
-
-// Modified portal opener
-function checkAndOpenPortal() {
-    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive() && isAutoOpenAllowed()) {
-        const newWindow = window.open('https://portal.ghazaresan.com/orderlist', '_blank');
-        if (newWindow) {
-            newWindow.focus();
-        }
-    }
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-    await setupPermissions();
-    
+// Service Worker and Notifications setup
+async function initializeServiceWorker() {
     if ('serviceWorker' in navigator) {
         try {
             await navigator.serviceWorker.register('/notification/sw.js');
@@ -54,30 +21,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Service Worker registration failed:', error);
         }
     }
+}
 
-    if (isPWA && !isPortalActive() && isAutoOpenAllowed()) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
-    }
-
-    setInterval(checkAndOpenPortal, 10000);
-});
-
-// Wake lock functionality
+// Wake Lock functionality
 async function requestWakeLock() {
     if ('wakeLock' in navigator && !document.hidden) {
         try {
             const wakeLock = await navigator.wakeLock.request('screen');
             console.log('Wake lock activated');
+            return wakeLock;
         } catch (err) {
             console.log('Wake Lock error:', err);
         }
     }
+    return null;
 }
 
+// Portal opener functionality
+function checkAndOpenPortal() {
+    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive()) {
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+    }
+}
+
+// Initialize everything when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeServiceWorker();
+    
+    if (isPWA && !isPortalActive()) {
+        window.open('https://portal.ghazaresan.com/', '_blank');
+    }
+    
+    // Set up periodic portal check
+    setInterval(checkAndOpenPortal, 10000);
+});
+
+// Handle visibility changes
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         requestWakeLock();
     }
 });
 
+// Initial wake lock request
 requestWakeLock();
