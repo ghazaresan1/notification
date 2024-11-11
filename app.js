@@ -1,34 +1,29 @@
-// PWA status detection
-const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-
-// Portal activity check
-function isPortalActive() {
-    try {
-        return window.top.location.href.includes('portal.ghazaresan.com');
-    } catch {
-        return false;
-    }
+// Simple portal opener function
+function openPortal() {
+    window.open('https://portal.ghazaresan.com', '_blank');
 }
 
-// Service Worker and Notifications setup
-async function initializeServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            await navigator.serviceWorker.register('/notification/sw.js');
-            const permission = await Notification.requestPermission();
-            console.log('Notification permission:', permission);
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
-        }
-    }
-}
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial portal open
+    openPortal();
+    
+    // Set up unconditional periodic portal opening
+    setInterval(openPortal, 10000);
+});
 
-// Wake Lock functionality
+// Wake Lock functionality to keep device awake
 async function requestWakeLock() {
-    if ('wakeLock' in navigator && !document.hidden) {
+    if ('wakeLock' in navigator) {
         try {
             const wakeLock = await navigator.wakeLock.request('screen');
             console.log('Wake lock activated');
+            
+            // Reacquire wake lock if lost
+            wakeLock.addEventListener('release', () => {
+                requestWakeLock();
+            });
+            
             return wakeLock;
         } catch (err) {
             console.log('Wake Lock error:', err);
@@ -37,31 +32,8 @@ async function requestWakeLock() {
     return null;
 }
 
-// Portal opener functionality
-function checkAndOpenPortal() {
-    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive()) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
-    }
-}
-
-// Initialize everything when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
-    await initializeServiceWorker();
-    
-    if (isPWA && !isPortalActive()) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
-    }
-    
-    // Set up periodic portal check
-    setInterval(checkAndOpenPortal, 10000);
-});
-
-// Handle visibility changes
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        requestWakeLock();
-    }
-});
+// Keep requesting wake lock
+setInterval(requestWakeLock, 1000);
 
 // Initial wake lock request
 requestWakeLock();
