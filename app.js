@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initializeServiceWorker();
     
     if (isPWA && !isPortalActive()) {
-        window.open('https://portal.ghazaresan.com/', '_blank');
+        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
     }
     
     // Set up periodic portal check
