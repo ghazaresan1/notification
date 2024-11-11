@@ -1,7 +1,17 @@
-// Track if we're running in the PWA
+// PWA status detection
 const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
-// Function to check if portal is focused in any tab
+// Store user preference in localStorage
+function setAutoOpenPreference() {
+    localStorage.setItem('allowAutoOpen', 'true');
+}
+
+// Check if auto-open is allowed
+function isAutoOpenAllowed() {
+    return localStorage.getItem('allowAutoOpen') === 'true';
+}
+
+// Portal activity check
 function isPortalActive() {
     try {
         return window.top.location.href.includes('portal.ghazaresan.com');
@@ -10,7 +20,31 @@ function isPortalActive() {
     }
 }
 
+// Initial setup to request permissions
+async function setupPermissions() {
+    if ('permissions' in navigator) {
+        try {
+            await navigator.permissions.query({ name: 'popup' });
+            setAutoOpenPreference();
+        } catch (error) {
+            console.log('Permission setup:', error);
+        }
+    }
+}
+
+// Modified portal opener
+function checkAndOpenPortal() {
+    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive() && isAutoOpenAllowed()) {
+        const newWindow = window.open('https://portal.ghazaresan.com/orderlist', '_blank');
+        if (newWindow) {
+            newWindow.focus();
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    await setupPermissions();
+    
     if ('serviceWorker' in navigator) {
         try {
             await navigator.serviceWorker.register('/notification/sw.js');
@@ -20,22 +54,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Service Worker registration failed:', error);
         }
     }
-    
-    // Initial open in new tab only from PWA
-    if (isPWA && !isPortalActive()) {
+
+    if (isPWA && !isPortalActive() && isAutoOpenAllowed()) {
         window.open('https://portal.ghazaresan.com/', '_blank');
     }
+
+    setInterval(checkAndOpenPortal, 10000);
 });
 
-// Set up periodic check
-setInterval(() => {
-    // Only open new tabs when PWA is in recent apps AND portal is not active
-    if (isPWA && document.hidden && !document.hasFocus() && !isPortalActive()) {
-        window.open('https://portal.ghazaresan.com/orderlist', '_blank');
-    }
-}, 10000);
-
-// Request wake lock to keep screen active
+// Wake lock functionality
 async function requestWakeLock() {
     if ('wakeLock' in navigator && !document.hidden) {
         try {
