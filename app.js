@@ -1,3 +1,6 @@
+// PWA status detection
+const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
 // Simple portal opener function
 function openPortal() {
     window.open('https://portal.ghazaresan.com', '_blank');
@@ -8,32 +11,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial portal open
     openPortal();
     
-    // Set up unconditional periodic portal opening
+    // Use multiple methods to ensure continuous execution
     setInterval(openPortal, 10000);
+    
+    // Backup interval using requestAnimationFrame
+    function portalLoop() {
+        openPortal();
+        setTimeout(() => requestAnimationFrame(portalLoop), 10000);
+    }
+    requestAnimationFrame(portalLoop);
 });
 
-// Wake Lock functionality to keep device awake
-async function requestWakeLock() {
+// Keep the PWA active using multiple wake strategies
+async function stayAwake() {
+    // Wake Lock
     if ('wakeLock' in navigator) {
         try {
             const wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Wake lock activated');
-            
-            // Reacquire wake lock if lost
-            wakeLock.addEventListener('release', () => {
-                requestWakeLock();
-            });
-            
-            return wakeLock;
-        } catch (err) {
-            console.log('Wake Lock error:', err);
-        }
+            wakeLock.addEventListener('release', stayAwake);
+        } catch (err) {}
     }
-    return null;
+    
+    // Keep CPU active
+    function keepAlive() {
+        const now = Date.now();
+        while (Date.now() - now < 100) {} // Small CPU work
+    }
+    setInterval(keepAlive, 5000);
 }
 
-// Keep requesting wake lock
-setInterval(requestWakeLock, 1000);
+// Initialize stay awake functionality
+stayAwake();
 
-// Initial wake lock request
-requestWakeLock();
+// Handle visibility changes
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Trigger portal open when app goes to background
+        openPortal();
+    }
+    stayAwake();
+});
