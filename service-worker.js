@@ -133,11 +133,6 @@ self.addEventListener('message', event => {
 });
 
 async function login(username, password) {
-    const loginData = {
-        UserName: username,
-        Password: password
-    };
-
     try {
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
             method: 'POST',
@@ -147,17 +142,13 @@ async function login(username, password) {
                 'SecurityKey': SECURITY_KEY,
                 'Referer': 'https://portal.ghazaresan.com/'
             },
-            body: JSON.stringify(loginData)
+            body: JSON.stringify({ UserName: username, Password: password })
         });
 
         const data = await response.json();
         console.log('Login response data:', data);
 
-        if (!data) {
-            throw new Error('Invalid credentials');
-        }
-
-        if (data.Token) {
+        if (data && data.Token) {
             const cache = await caches.open(AUTH_CACHE_NAME);
             await Promise.all([
                 cache.put('auth-token', new Response(data.Token)),
@@ -166,10 +157,34 @@ async function login(username, password) {
                     canEditMenu: data.CanEditMenu
                 })))
             ]);
+            
+            // Send success result
+            clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'loginResult',
+                        success: true,
+                        message: 'Login successful'
+                    });
+                });
+            });
+            
+            startOrderChecks(data.Token);
             return data.Token;
         }
         
-        throw new Error('Authentication failed');
+        // Send failure result
+        clients.matchAll().then(clients => {
+            clients.forEach(client => {
+                client.postMessage({
+                    type: 'loginResult',
+                    success: false,
+                    message: 'Invalid credentials'
+                });
+            });
+        });
+        
+        throw new Error('Invalid credentials');
     } catch (error) {
         console.log('Login failed:', error.message);
         throw error;
