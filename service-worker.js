@@ -139,6 +139,8 @@ async function login(username, password) {
             Password: password
         };
 
+        console.log('Making login request...');
+        
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
             method: 'POST',
             headers: {
@@ -146,26 +148,31 @@ async function login(username, password) {
                 'Content-Type': 'application/json',
                 'SecurityKey': SECURITY_KEY,
                 'Referer': 'https://portal.ghazaresan.com/',
-                'Origin': 'https://portal.ghazaresan.com'
+                'securitykey': SECURITY_KEY
             },
-            mode: 'cors',
             body: JSON.stringify(loginData)
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+
         const text = await response.text();
-        console.log('Response text:', text);
-        
-        // Parse response only if we have content
-        if (text && text.length > 0) {
-            const data = JSON.parse(text);
-            if (data && (data.Token || data.Data?.Token)) {
-                return data.Token || data.Data.Token;
-            }
+        console.log('Raw response text:', text);
+
+        if (!text) {
+            throw new Error('Empty response received');
         }
-        
-        throw new Error('Token not found in response');
+
+        const data = JSON.parse(text);
+        console.log('Parsed data:', data);
+
+        if (!data || (!data.Token && !data.Data?.Token)) {
+            throw new Error('No token in response');
+        }
+
+        return data.Token || data.Data.Token;
     } catch (error) {
-        console.log('Full error details:', error);
+        console.log('Login process error:', error);
         throw error;
     }
 }
