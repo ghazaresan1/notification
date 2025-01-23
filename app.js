@@ -1,8 +1,8 @@
 // Initialize Firebase
 firebase.initializeApp({
-    apiKey: "your-api-key",
-    projectId: "your-project-id",
-    messagingSenderId: "your-sender-id"
+    apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
+    projectId: "ordernotifier-9fabc",
+    messagingSenderId: "921479042468"
 });
 
 // Register service worker
