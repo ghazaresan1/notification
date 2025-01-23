@@ -91,9 +91,14 @@ async function getAccessToken() {
         iat: now
     };
 
-    const jwt = generateJWT(header, claim, serviceAccount.private_key);
+    // Wait for JWT generation
+    const jwt = await generateJWT(header, claim, serviceAccount.private_key);
+    
     const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
         body: new URLSearchParams({
             grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
             assertion: jwt
@@ -101,6 +106,10 @@ async function getAccessToken() {
     });
     
     const data = await response.json();
+    if (!data.access_token) {
+        console.log('Token response:', data);
+        throw new Error('Failed to get access token');
+    }
     return data.access_token;
 }
 
