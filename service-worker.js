@@ -149,12 +149,10 @@ async function login(username, password) {
         body: JSON.stringify(loginData)
     });
 
-    if (!response.ok) throw new Error('No auth token received');
-    
     const data = await response.json();
     console.log('Login response data:', data);
 
-    if (data.Token) {
+    if (data && data.Token) {
         const cache = await caches.open(AUTH_CACHE_NAME);
         await Promise.all([
             cache.put('auth-token', new Response(data.Token)),
@@ -165,7 +163,10 @@ async function login(username, password) {
         ]);
         return data.Token;
     }
+    
+    throw new Error('Invalid credentials');
 }
+
 
 
 
