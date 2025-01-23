@@ -91,10 +91,11 @@ async function getAccessToken() {
         iat: now
     };
 
-    // Wait for JWT generation
+    console.log("Generating JWT with claims:", claim);
     const jwt = await generateJWT(header, claim, serviceAccount.private_key);
-    
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    console.log("Generated JWT:", jwt);
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -105,13 +106,17 @@ async function getAccessToken() {
         })
     });
     
-    const data = await response.json();
-    if (!data.access_token) {
-        console.log('Token response:', data);
-        throw new Error('Failed to get access token');
+    const tokenData = await tokenResponse.json();
+    console.log("Full token response:", tokenData);
+    
+    if (tokenData.access_token) {
+        console.log("Successfully obtained access token");
+        return tokenData.access_token;
     }
-    return data.access_token;
+    
+    throw new Error(`Token generation failed: ${JSON.stringify(tokenData)}`);
 }
+
 
 async function sendNotification(fcmToken) {
     try {
