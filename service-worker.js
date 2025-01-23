@@ -27,38 +27,45 @@ const serviceAccount = {
 let activeUserFCMToken = null;
 
 async function generateJWT(header, claim, privateKey) {
-    // Convert PEM private key to CryptoKey
-    const pemHeader = "-----BEGIN PRIVATE KEY-----";
-    const pemFooter = "-----END PRIVATE KEY-----";
-    const pemContents = privateKey.replace(pemHeader, "").replace(pemFooter, "").replace(/\s/g, "");
+    // Normalize private key format
+    const normalizedKey = privateKey.trim();
+    const pemContents = normalizedKey
+        .replace("-----BEGIN PRIVATE KEY-----", "")
+        .replace("-----END PRIVATE KEY-----", "")
+        .replace(/[\r\n\s]/g, "");
+
+    // Create binary key data
     const binaryDer = base64StringToArrayBuffer(pemContents);
     
+    // Import the key with specific algorithm parameters
     const cryptoKey = await crypto.subtle.importKey(
         "pkcs8",
         binaryDer,
         {
             name: "RSASSA-PKCS1-v1_5",
-            hash: "SHA-256",
+            hash: { name: "SHA-256" }
         },
         false,
         ["sign"]
     );
 
+    // Prepare JWT components
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedClaim = base64UrlEncode(JSON.stringify(claim));
     const signatureInput = `${encodedHeader}.${encodedClaim}`;
     
+    // Generate signature
     const signature = await crypto.subtle.sign(
         { name: "RSASSA-PKCS1-v1_5" },
         cryptoKey,
         new TextEncoder().encode(signatureInput)
     );
     
+    // Create final JWT
     const encodedSignature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
     return `${encodedHeader}.${encodedClaim}.${encodedSignature}`;
 }
 
-// Helper functions
 function base64UrlEncode(str) {
     return btoa(str)
         .replace(/\+/g, '-')
