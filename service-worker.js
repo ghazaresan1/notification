@@ -133,47 +133,37 @@ self.addEventListener('message', event => {
 });
 
 async function login(username, password) {
-    try {
-        const loginData = {
-            UserName: username,
-            Password: password
-        };
+    const loginData = {
+        UserName: username,
+        Password: password
+    };
 
-        console.log('Making login request...');
-        
-        const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
-            method: 'POST',
-            headers: {
-                'Accept': '*/*',
-                'Content-Type': 'application/json',
-                'SecurityKey': SECURITY_KEY,
-                'Referer': 'https://portal.ghazaresan.com/',
-                'securitykey': SECURITY_KEY
-            },
-            body: JSON.stringify(loginData)
-        });
+    const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'SecurityKey': SECURITY_KEY,
+            'Referer': 'https://portal.ghazaresan.com/'
+        },
+        body: JSON.stringify(loginData)
+    });
 
-        console.log('Response status:', response.status);
-        console.log('Response headers:', [...response.headers.entries()]);
+    if (!response.ok) throw new Error('No auth token received');
+    
+    const data = await response.json();
+    console.log('Login response data:', data);
 
-        const text = await response.text();
-        console.log('Raw response text:', text);
-
-        if (!text) {
-            throw new Error('Empty response received');
-        }
-
-        const data = JSON.parse(text);
-        console.log('Parsed data:', data);
-
-        if (!data || (!data.Token && !data.Data?.Token)) {
-            throw new Error('No token in response');
-        }
-
-        return data.Token || data.Data.Token;
-    } catch (error) {
-        console.log('Login process error:', error);
-        throw error;
+    if (data.Token) {
+        const cache = await caches.open(AUTH_CACHE_NAME);
+        await Promise.all([
+            cache.put('auth-token', new Response(data.Token)),
+            cache.put('restaurant-info', new Response(JSON.stringify({
+                name: data.RestaurantName,
+                canEditMenu: data.CanEditMenu
+            })))
+        ]);
+        return data.Token;
     }
 }
 
