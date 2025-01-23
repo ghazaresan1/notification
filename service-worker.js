@@ -138,19 +138,25 @@ async function login(username, password) {
         Password: password
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'SecurityKey': SECURITY_KEY,
-            'Referer': 'https://portal.ghazaresan.com/'
-        },
-        body: JSON.stringify(loginData)
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'SecurityKey': SECURITY_KEY,
+                'Referer': 'https://portal.ghazaresan.com/'
+            },
+            body: JSON.stringify(loginData)
+        });
 
-    const data = await response.json();
-    return data.Token;
+        const data = await response.json();
+        console.log('Login response:', data);  // Let's see the actual response
+        return data.Data.Token;  // Access Token from the correct path
+    } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+    }
 }
 
 async function checkNewOrders(token) {
