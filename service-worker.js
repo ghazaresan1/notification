@@ -1,7 +1,3 @@
-// Add the Google Auth Library
-importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-auth.js');
-
 const AUTH_CACHE_NAME = 'auth-cache';
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
@@ -27,22 +23,9 @@ const serviceAccount = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-ut04s%40ordernotifier-9fabc.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
 };
-
 let activeUserFCMToken = null;
 
 async function generateJWT(header, claim, privateKey) {
-    // Log the exact private key format being used
-    console.log("Using private key format:", privateKey.substring(0, 50) + "...");
-    
-    // Create the key import parameters
-    const algorithm = {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: { name: "SHA-256" },
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1])
-    };
-
-    // Process the private key
     const keyData = privateKey
         .replace(/-----BEGIN PRIVATE KEY-----/, '')
         .replace(/-----END PRIVATE KEY-----/, '')
@@ -50,36 +33,35 @@ async function generateJWT(header, claim, privateKey) {
     
     const binaryKey = base64StringToArrayBuffer(keyData);
     
-    // Import the key with detailed parameters
     const cryptoKey = await crypto.subtle.importKey(
         "pkcs8",
         binaryKey,
-        algorithm,
+        {
+            name: "RSASSA-PKCS1-v1_5",
+            hash: { name: "SHA-256" },
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1])
+        },
         false,
         ["sign"]
     );
 
-    // Create the JWT components
     const headerBase64 = base64UrlEncode(JSON.stringify(header));
     const payloadBase64 = base64UrlEncode(JSON.stringify(claim));
     const toSign = `${headerBase64}.${payloadBase64}`;
 
-    // Generate the signature
     const signatureBuffer = await crypto.subtle.sign(
-        algorithm,
+        { name: "RSASSA-PKCS1-v1_5" },
         cryptoKey,
         new TextEncoder().encode(toSign)
     );
 
-    // Convert signature to base64url
     const signatureBase64 = base64UrlEncode(
         String.fromCharCode.apply(null, new Uint8Array(signatureBuffer))
     );
 
-    // Return the complete JWT
     return `${headerBase64}.${payloadBase64}.${signatureBase64}`;
 }
-
 
 function base64UrlEncode(str) {
     return btoa(str)
@@ -101,24 +83,35 @@ function base64StringToArrayBuffer(base64String) {
     return buffer;
 }
 
-
 async function getAccessToken() {
     const now = Math.floor(Date.now() / 1000);
-    const jwtClient = new google.auth.JWT(
-        serviceAccount.client_email,
-        null,
-        serviceAccount.private_key,
-        ['https://www.googleapis.com/auth/firebase.messaging'],
-        null
-    );
+    const header = { alg: 'RS256', typ: 'JWT' };
+    const claim = {
+        iss: serviceAccount.client_email,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: now + 3600,
+        iat: now
+    };
 
-    try {
-        const credentials = await jwtClient.authorize();
-        return credentials.access_token;
-    } catch (error) {
-        console.log('Auth error details:', error);
-        throw error;
+    const jwt = await generateJWT(header, claim, serviceAccount.private_key);
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            assertion: jwt
+        })
+    });
+    
+    const data = await response.json();
+    if (!data.access_token) {
+        console.log('Token response:', data);
+        throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
     }
+    return data.access_token;
 }
 
 async function sendNotification(fcmToken) {
@@ -192,7 +185,6 @@ async function login(username, password) {
                 })))
             ]);
             
-            // Send success result
             clients.matchAll().then(clients => {
                 clients.forEach(client => {
                     client.postMessage({
@@ -207,7 +199,6 @@ async function login(username, password) {
             return data.Token;
         }
         
-        // Send failure result
         clients.matchAll().then(clients => {
             clients.forEach(client => {
                 client.postMessage({
@@ -228,20 +219,16 @@ async function login(username, password) {
 let checkOrdersInterval;
 function startOrderChecks(token) {
     console.log("Starting order checks with token:", token);
-    // Clear any existing interval
     if (checkOrdersInterval) {
         clearInterval(checkOrdersInterval);
     }
     
-    // Start immediate check
     checkNewOrders(token);
     
-    // Set up interval for future checks
     checkOrdersInterval = setInterval(() => {
         checkNewOrders(token);
     }, 30000);
 }
-
 
 async function checkNewOrders(token) {
     try {
