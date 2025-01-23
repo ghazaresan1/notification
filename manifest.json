@@ -3,7 +3,7 @@
   "short_name": "OrderNotifier",
   "start_url": "/",
   "display": "standalone",
-  "gcm_sender_id": "ordernotifier-9fabc",
+  "gcm_sender_id": "921479042468",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "icons": [
