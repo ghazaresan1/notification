@@ -1,7 +1,7 @@
 {
   "name": "Ghazaresan Order Notifier",
   "short_name": "OrderNotifier",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "gcm_sender_id": "921479042468",
   "background_color": "#ffffff",
