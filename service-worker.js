@@ -139,8 +139,6 @@ async function login(username, password) {
             Password: password
         };
 
-        console.log('Attempting login with:', loginData);
-
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
             method: 'POST',
             headers: {
@@ -148,32 +146,29 @@ async function login(username, password) {
                 'Content-Type': 'application/json',
                 'SecurityKey': SECURITY_KEY,
                 'Referer': 'https://portal.ghazaresan.com/',
-                'Origin': 'https://portal.ghazaresan.com'
+                'Origin': 'https://portal.ghazaresan.com',
+                'Access-Control-Allow-Origin': '*'
             },
+            mode: 'cors',
+            credentials: 'include',
             body: JSON.stringify(loginData)
         });
 
-        if (!response.ok) {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-        }
-
         const text = await response.text();
         console.log('Raw response text:', text);
-
-        const data = text ? JSON.parse(text) : null;
-        console.log('Parsed response:', data);
-
-        if (data && data.Token) {
-            return data.Token;
+        
+        if (!text) {
+            return null;
         }
 
-        throw new Error('Login failed - invalid response format');
+        const data = JSON.parse(text);
+        return data.Token || data.Data?.Token;
     } catch (error) {
-        console.log('Detailed error:', error);
+        console.log('Login error details:', error);
         throw error;
     }
 }
+
 
 async function checkNewOrders(token) {
     const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
