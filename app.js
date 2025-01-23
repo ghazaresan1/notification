@@ -1,5 +1,5 @@
 // Initialize Firebase
-firebase.initializeApp({
+const firebaseApp = firebase.initializeApp({
     apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
     projectId: "ordernotifier-9fabc",
     messagingSenderId: "921479042468"
