@@ -1,3 +1,7 @@
+// Add the Google Auth Library
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-auth.js');
+
 const AUTH_CACHE_NAME = 'auth-cache';
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
@@ -100,41 +104,22 @@ function base64StringToArrayBuffer(base64String) {
 
 async function getAccessToken() {
     const now = Math.floor(Date.now() / 1000);
-    const header = { alg: 'RS256', typ: 'JWT' };
-    const claim = {
-        iss: serviceAccount.client_email,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: now + 3600,
-        iat: now
-    };
+    const jwtClient = new google.auth.JWT(
+        serviceAccount.client_email,
+        null,
+        serviceAccount.private_key,
+        ['https://www.googleapis.com/auth/firebase.messaging'],
+        null
+    );
 
-    console.log("Generating JWT with claims:", claim);
-    const jwt = await generateJWT(header, claim, serviceAccount.private_key);
-    console.log("Generated JWT:", jwt);
-
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion: jwt
-        })
-    });
-    
-    const tokenData = await tokenResponse.json();
-    console.log("Full token response:", tokenData);
-    
-    if (tokenData.access_token) {
-        console.log("Successfully obtained access token");
-        return tokenData.access_token;
+    try {
+        const credentials = await jwtClient.authorize();
+        return credentials.access_token;
+    } catch (error) {
+        console.log('Auth error details:', error);
+        throw error;
     }
-    
-    throw new Error(`Token generation failed: ${JSON.stringify(tokenData)}`);
 }
-
 
 async function sendNotification(fcmToken) {
     try {
