@@ -105,23 +105,40 @@ async function getAccessToken() {
 }
 
 async function sendNotification(fcmToken) {
-    const accessToken = await getAccessToken();
-    await fetch(`https://fcm.googleapis.com/v1/projects/${firebaseConfig.projectId}/messages:send`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            message: {
-                token: fcmToken,
-                notification: {
-                    title: 'سفارش جدید',
-                    body: 'یک سفارش جدید در انتظار تایید دارید'
+    try {
+        console.log("Getting access token for FCM...");
+        const accessToken = await getAccessToken();
+        console.log("Access token received:", accessToken);
+
+        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${firebaseConfig.projectId}/messages:send`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: {
+                    token: fcmToken,
+                    notification: {
+                        title: 'سفارش جدید',
+                        body: 'یک سفارش جدید در انتظار تایید دارید'
+                    }
                 }
-            }
-        })
-    });
+            })
+        });
+
+        const result = await response.json();
+        console.log("FCM Response:", result);
+        
+        if (!response.ok) {
+            throw new Error(`FCM Error: ${result.error?.message || 'Unknown error'}`);
+        }
+        
+        console.log("Notification sent successfully!");
+    } catch (error) {
+        console.error("Error sending notification:", error);
+        throw error;
+    }
 }
 
 self.addEventListener('message', event => {
