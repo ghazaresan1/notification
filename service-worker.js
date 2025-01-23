@@ -139,7 +139,7 @@ async function login(username, password) {
             Password: password
         };
 
-        console.log('Sending login request with:', loginData);
+        console.log('Attempting login with:', loginData);
 
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
             method: 'POST',
@@ -147,27 +147,33 @@ async function login(username, password) {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'SecurityKey': SECURITY_KEY,
-                'Referer': 'https://portal.ghazaresan.com/'
+                'Referer': 'https://portal.ghazaresan.com/',
+                'Origin': 'https://portal.ghazaresan.com'
             },
             body: JSON.stringify(loginData)
         });
 
-        console.log('Raw response:', response);
-        const data = await response.json();
-        console.log('Login response data:', data);
+        if (!response.ok) {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+        }
 
-        // Check if response has token directly
+        const text = await response.text();
+        console.log('Raw response text:', text);
+
+        const data = text ? JSON.parse(text) : null;
+        console.log('Parsed response:', data);
+
         if (data && data.Token) {
             return data.Token;
         }
-        
-        throw new Error('Invalid login response');
+
+        throw new Error('Login failed - invalid response format');
     } catch (error) {
-        console.log('Login failed:', error);
+        console.log('Detailed error:', error);
         throw error;
     }
 }
-
 
 async function checkNewOrders(token) {
     const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
