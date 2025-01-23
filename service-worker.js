@@ -138,37 +138,44 @@ async function login(username, password) {
         Password: password
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'SecurityKey': SECURITY_KEY,
-            'Referer': 'https://portal.ghazaresan.com/'
-        },
-        body: JSON.stringify(loginData)
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'SecurityKey': SECURITY_KEY,
+                'Referer': 'https://portal.ghazaresan.com/'
+            },
+            body: JSON.stringify(loginData)
+        });
 
-    const data = await response.json();
-    console.log('Login response data:', data);
+        const data = await response.json();
+        console.log('Login response data:', data);
 
-    // Handle successful login
-    if (data && data.Token) {
-        const cache = await caches.open(AUTH_CACHE_NAME);
-        await Promise.all([
-            cache.put('auth-token', new Response(data.Token)),
-            cache.put('restaurant-info', new Response(JSON.stringify({
-                name: data.RestaurantName,
-                canEditMenu: data.CanEditMenu
-            })))
-        ]);
-        startOrderChecks(data.Token);
-        return data.Token;
+        if (!data) {
+            throw new Error('Invalid credentials');
+        }
+
+        if (data.Token) {
+            const cache = await caches.open(AUTH_CACHE_NAME);
+            await Promise.all([
+                cache.put('auth-token', new Response(data.Token)),
+                cache.put('restaurant-info', new Response(JSON.stringify({
+                    name: data.RestaurantName,
+                    canEditMenu: data.CanEditMenu
+                })))
+            ]);
+            return data.Token;
+        }
+        
+        throw new Error('Authentication failed');
+    } catch (error) {
+        console.log('Login failed:', error.message);
+        throw error;
     }
-    
-    // Handle failed login
-    throw new Error('Login failed - Invalid credentials');
 }
+
 
 
 
