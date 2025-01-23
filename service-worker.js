@@ -191,30 +191,40 @@ async function login(username, password) {
     }
 }
 
-
+function startOrderChecks(token) {
+    console.log("Starting order checks with token:", token);
+    setInterval(() => {
+        checkNewOrders(token);
+    }, 30000);
+}
 
 
 
 async function checkNewOrders(token) {
-    const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
-        method: 'POST',
-        headers: {
-            'accept': 'application/json',
-            'authorizationcode': token,
-            'content-type': 'application/json',
-            'referer': 'https://portal.ghazaresan.com/',
-            'securitykey': SECURITY_KEY,
-        },
-        body: JSON.stringify({})
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'authorizationcode': token,
+                'content-type': 'application/json',
+                'referer': 'https://portal.ghazaresan.com/',
+                'securitykey': SECURITY_KEY,
+            },
+            body: JSON.stringify({})
+        });
 
-    const orders = await response.json();
-    
-    if (Array.isArray(orders)) {
-        const hasNewOrder = orders.some(order => order.Status === 0);
-        if (hasNewOrder && activeUserFCMToken) {
-            await sendNotification(activeUserFCMToken);
+        const orders = await response.json();
+        console.log("Checking orders:", orders);
+        
+        if (Array.isArray(orders)) {
+            const hasNewOrder = orders.some(order => order.Status === 0);
+            if (hasNewOrder && activeUserFCMToken) {
+                await sendNotification(activeUserFCMToken);
+            }
         }
+    } catch (error) {
+        console.error("Error checking orders:", error);
     }
 }
 
