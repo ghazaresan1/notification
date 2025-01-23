@@ -27,44 +27,55 @@ const serviceAccount = {
 let activeUserFCMToken = null;
 
 async function generateJWT(header, claim, privateKey) {
-    // Normalize private key format
-    const normalizedKey = privateKey.trim();
-    const pemContents = normalizedKey
-        .replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "")
-        .replace(/[\r\n\s]/g, "");
-
-    // Create binary key data
-    const binaryDer = base64StringToArrayBuffer(pemContents);
+    // Log the exact private key format being used
+    console.log("Using private key format:", privateKey.substring(0, 50) + "...");
     
-    // Import the key with specific algorithm parameters
+    // Create the key import parameters
+    const algorithm = {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: { name: "SHA-256" },
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1])
+    };
+
+    // Process the private key
+    const keyData = privateKey
+        .replace(/-----BEGIN PRIVATE KEY-----/, '')
+        .replace(/-----END PRIVATE KEY-----/, '')
+        .replace(/\s/g, '');
+    
+    const binaryKey = base64StringToArrayBuffer(keyData);
+    
+    // Import the key with detailed parameters
     const cryptoKey = await crypto.subtle.importKey(
         "pkcs8",
-        binaryDer,
-        {
-            name: "RSASSA-PKCS1-v1_5",
-            hash: { name: "SHA-256" }
-        },
+        binaryKey,
+        algorithm,
         false,
         ["sign"]
     );
 
-    // Prepare JWT components
-    const encodedHeader = base64UrlEncode(JSON.stringify(header));
-    const encodedClaim = base64UrlEncode(JSON.stringify(claim));
-    const signatureInput = `${encodedHeader}.${encodedClaim}`;
-    
-    // Generate signature
-    const signature = await crypto.subtle.sign(
-        { name: "RSASSA-PKCS1-v1_5" },
+    // Create the JWT components
+    const headerBase64 = base64UrlEncode(JSON.stringify(header));
+    const payloadBase64 = base64UrlEncode(JSON.stringify(claim));
+    const toSign = `${headerBase64}.${payloadBase64}`;
+
+    // Generate the signature
+    const signatureBuffer = await crypto.subtle.sign(
+        algorithm,
         cryptoKey,
-        new TextEncoder().encode(signatureInput)
+        new TextEncoder().encode(toSign)
     );
-    
-    // Create final JWT
-    const encodedSignature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
-    return `${encodedHeader}.${encodedClaim}.${encodedSignature}`;
+
+    // Convert signature to base64url
+    const signatureBase64 = base64UrlEncode(
+        String.fromCharCode.apply(null, new Uint8Array(signatureBuffer))
+    );
+
+    // Return the complete JWT
+    return `${headerBase64}.${payloadBase64}.${signatureBase64}`;
 }
+
 
 function base64UrlEncode(str) {
     return btoa(str)
