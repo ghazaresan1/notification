@@ -142,32 +142,34 @@ async function login(username, password) {
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
+                'Accept': '*/*',
                 'Content-Type': 'application/json',
                 'SecurityKey': SECURITY_KEY,
                 'Referer': 'https://portal.ghazaresan.com/',
-                'Origin': 'https://portal.ghazaresan.com',
-                'Access-Control-Allow-Origin': '*'
+                'Origin': 'https://portal.ghazaresan.com'
             },
             mode: 'cors',
-            credentials: 'include',
             body: JSON.stringify(loginData)
         });
 
         const text = await response.text();
-        console.log('Raw response text:', text);
+        console.log('Response text:', text);
         
-        if (!text) {
-            return null;
+        // Parse response only if we have content
+        if (text && text.length > 0) {
+            const data = JSON.parse(text);
+            if (data && (data.Token || data.Data?.Token)) {
+                return data.Token || data.Data.Token;
+            }
         }
-
-        const data = JSON.parse(text);
-        return data.Token || data.Data?.Token;
+        
+        throw new Error('Token not found in response');
     } catch (error) {
-        console.log('Login error details:', error);
+        console.log('Full error details:', error);
         throw error;
     }
 }
+
 
 
 async function checkNewOrders(token) {
