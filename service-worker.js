@@ -26,20 +26,59 @@ const serviceAccount = {
 
 let activeUserFCMToken = null;
 
-function generateJWT(header, claim, privateKey) {
-    const encodedHeader = btoa(JSON.stringify(header));
-    const encodedClaim = btoa(JSON.stringify(claim));
+async function generateJWT(header, claim, privateKey) {
+    // Convert PEM private key to CryptoKey
+    const pemHeader = "-----BEGIN PRIVATE KEY-----";
+    const pemFooter = "-----END PRIVATE KEY-----";
+    const pemContents = privateKey.replace(pemHeader, "").replace(pemFooter, "").replace(/\s/g, "");
+    const binaryDer = base64StringToArrayBuffer(pemContents);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+        "pkcs8",
+        binaryDer,
+        {
+            name: "RSASSA-PKCS1-v1_5",
+            hash: "SHA-256",
+        },
+        false,
+        ["sign"]
+    );
+
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedClaim = base64UrlEncode(JSON.stringify(claim));
     const signatureInput = `${encodedHeader}.${encodedClaim}`;
     
-    const signature = crypto.subtle.sign(
-        "RS256",
-        privateKey,
+    const signature = await crypto.subtle.sign(
+        { name: "RSASSA-PKCS1-v1_5" },
+        cryptoKey,
         new TextEncoder().encode(signatureInput)
     );
     
-    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    const encodedSignature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
     return `${encodedHeader}.${encodedClaim}.${encodedSignature}`;
 }
+
+// Helper functions
+function base64UrlEncode(str) {
+    return btoa(str)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
+
+function base64StringToArrayBuffer(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+    const rawData = atob(base64);
+    const buffer = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        buffer[i] = rawData.charCodeAt(i);
+    }
+    return buffer;
+}
+
 
 async function getAccessToken() {
     const now = Math.floor(Date.now() / 1000);
