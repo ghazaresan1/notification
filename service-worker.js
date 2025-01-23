@@ -132,30 +132,30 @@ self.addEventListener('message', event => {
     }
 });
 
-async function login(username, password) {
+sync function login(username, password) {
     const loginData = {
         UserName: username,
         Password: password
     };
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'SecurityKey': SECURITY_KEY,
-                'Referer': 'https://portal.ghazaresan.com/'
-            },
-            body: JSON.stringify(loginData)
-        });
+    const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'SecurityKey': SECURITY_KEY,
+            'Referer': 'https://portal.ghazaresan.com/'
+        },
+        body: JSON.stringify(loginData)
+    });
 
-        const data = await response.json();
-        console.log('Login response:', data);  // Let's see the actual response
-        return data.Data.Token;  // Access Token from the correct path
-    } catch (error) {
-        console.error('Login error:', error);
-        throw error;
+    const data = await response.json();
+    console.log('Full login response:', data);  // See the complete response structure
+    
+    if (data && data.Data && data.Data.Token) {
+        return data.Data.Token;
+    } else {
+        throw new Error('Invalid login response structure');
     }
 }
 
