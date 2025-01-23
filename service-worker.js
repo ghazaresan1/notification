@@ -191,17 +191,27 @@ async function login(username, password) {
     }
 }
 
+let checkOrdersInterval;
 function startOrderChecks(token) {
     console.log("Starting order checks with token:", token);
-    setInterval(() => {
+    // Clear any existing interval
+    if (checkOrdersInterval) {
+        clearInterval(checkOrdersInterval);
+    }
+    
+    // Start immediate check
+    checkNewOrders(token);
+    
+    // Set up interval for future checks
+    checkOrdersInterval = setInterval(() => {
         checkNewOrders(token);
     }, 30000);
 }
 
 
-
 async function checkNewOrders(token) {
     try {
+        console.log("Checking orders with token:", token);
         const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
             method: 'POST',
             headers: {
@@ -215,11 +225,12 @@ async function checkNewOrders(token) {
         });
 
         const orders = await response.json();
-        console.log("Checking orders:", orders);
+        console.log("Orders response:", orders);
         
         if (Array.isArray(orders)) {
             const hasNewOrder = orders.some(order => order.Status === 0);
             if (hasNewOrder && activeUserFCMToken) {
+                console.log("New order found, sending notification");
                 await sendNotification(activeUserFCMToken);
             }
         }
