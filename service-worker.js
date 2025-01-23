@@ -152,6 +152,7 @@ async function login(username, password) {
     const data = await response.json();
     console.log('Login response data:', data);
 
+    // Handle successful login
     if (data && data.Token) {
         const cache = await caches.open(AUTH_CACHE_NAME);
         await Promise.all([
@@ -161,10 +162,12 @@ async function login(username, password) {
                 canEditMenu: data.CanEditMenu
             })))
         ]);
+        startOrderChecks(data.Token);
         return data.Token;
     }
     
-    throw new Error('Invalid credentials');
+    // Handle failed login
+    throw new Error('Login failed - Invalid credentials');
 }
 
 
