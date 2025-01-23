@@ -132,32 +132,42 @@ self.addEventListener('message', event => {
     }
 });
 
-sync function login(username, password) {
-    const loginData = {
-        UserName: username,
-        Password: password
-    };
+async function login(username, password) {
+    try {
+        const loginData = {
+            UserName: username,
+            Password: password
+        };
 
-    const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'SecurityKey': SECURITY_KEY,
-            'Referer': 'https://portal.ghazaresan.com/'
-        },
-        body: JSON.stringify(loginData)
-    });
+        console.log('Sending login request with:', loginData);
 
-    const data = await response.json();
-    console.log('Full login response:', data);  // See the complete response structure
-    
-    if (data && data.Data && data.Data.Token) {
-        return data.Data.Token;
-    } else {
-        throw new Error('Invalid login response structure');
+        const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'SecurityKey': SECURITY_KEY,
+                'Referer': 'https://portal.ghazaresan.com/'
+            },
+            body: JSON.stringify(loginData)
+        });
+
+        console.log('Raw response:', response);
+        const data = await response.json();
+        console.log('Login response data:', data);
+
+        // Check if response has token directly
+        if (data && data.Token) {
+            return data.Token;
+        }
+        
+        throw new Error('Invalid login response');
+    } catch (error) {
+        console.log('Login failed:', error);
+        throw error;
     }
 }
+
 
 async function checkNewOrders(token) {
     const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
