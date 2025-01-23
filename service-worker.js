@@ -4,9 +4,9 @@ const SECURITY_KEY = 'Asdiw2737y#376';
 
 // Firebase config
 const firebaseConfig = {
-    apiKey: "your-api-key",
-    projectId: "your-project-id",
-    messagingSenderId: "your-sender-id"
+    apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
+    projectId: "ordernotifier-9fabc",
+    messagingSenderId: "921479042468"
 };
 
 let activeUserFCMToken = null;
