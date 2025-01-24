@@ -139,25 +139,21 @@ async function getAccessToken() {
 
 async function sendNotification(fcmToken) {
     try {
-        console.log("Getting access token for FCM...");
-        const accessToken = await getAccessToken();
-        console.log("Access token received:", accessToken);
+        const message = {
+            token: fcmToken,
+            notification: {
+                title: 'سفارش جدید',
+                body: 'یک سفارش جدید در انتظار تایید دارید'
+            }
+        };
 
         const response = await fetch(`https://fcm.googleapis.com/v1/projects/${firebaseConfig.projectId}/messages:send`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${serviceAccount.token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                message: {
-                    token: fcmToken,
-                    notification: {
-                        title: 'سفارش جدید',
-                        body: 'یک سفارش جدید در انتظار تایید دارید'
-                    }
-                }
-            })
+            body: JSON.stringify({ message })
         });
 
         const result = await response.json();
@@ -173,6 +169,7 @@ async function sendNotification(fcmToken) {
         throw error;
     }
 }
+
 
 self.addEventListener('message', event => {
     const { username, password, fcmToken } = event.data;
