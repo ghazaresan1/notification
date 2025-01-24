@@ -25,34 +25,29 @@ const serviceAccount = {
 };
 let activeUserFCMToken = null;
 async function generateJWT(header, claim, privateKey) {
-    // Add key ID and algorithm specifications
     const fullHeader = {
         alg: 'RS256',
         typ: 'JWT',
         kid: serviceAccount.private_key_id
     };
     
-    // Ensure proper timestamp handling
     const now = Math.floor(Date.now() / 1000);
     const fullClaim = {
         iss: serviceAccount.client_email,
+        sub: serviceAccount.client_email,
         scope: 'https://www.googleapis.com/auth/firebase.messaging',
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
         iat: now
     };
 
-    // Process private key with precise formatting
     const keyData = privateKey
-        .replace('-----BEGIN PRIVATE KEY-----', '')
-        .replace('-----END PRIVATE KEY-----', '')
-        .split('\n')
-        .join('');
+        .replace(/-----BEGIN PRIVATE KEY-----\n/, '')
+        .replace(/\n-----END PRIVATE KEY-----/, '')
+        .replace(/\n/g, '');
 
-    // Create binary key data
     const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
     
-    // Import key with specific algorithm parameters
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
         binaryKey,
@@ -64,19 +59,16 @@ async function generateJWT(header, claim, privateKey) {
         ['sign']
     );
 
-    // Generate JWT components
     const encodedHeader = base64UrlEncode(JSON.stringify(fullHeader));
     const encodedPayload = base64UrlEncode(JSON.stringify(fullClaim));
     const signInput = `${encodedHeader}.${encodedPayload}`;
     
-    // Create signature
     const signature = await crypto.subtle.sign(
         'RSASSA-PKCS1-v1_5',
         cryptoKey,
         new TextEncoder().encode(signInput)
     );
 
-    // Encode final signature
     const encodedSignature = base64UrlEncode(
         String.fromCharCode(...new Uint8Array(signature))
     );
