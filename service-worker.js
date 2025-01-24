@@ -93,18 +93,6 @@ function base64UrlEncode(input) {
         .replace(/=/g, '');
 }
 
-function base64StringToArrayBuffer(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-    const rawData = atob(base64);
-    const buffer = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        buffer[i] = rawData.charCodeAt(i);
-    }
-    return buffer;
-}
 
 async function getAccessToken() {
     const now = Math.floor(Date.now() / 1000);
@@ -139,21 +127,26 @@ async function getAccessToken() {
 
 async function sendNotification(fcmToken) {
     try {
+        // First get the access token
+        const accessToken = await getAccessToken();
+        
         const message = {
-            token: fcmToken,
-            notification: {
-                title: 'سفارش جدید',
-                body: 'یک سفارش جدید در انتظار تایید دارید'
+            message: {
+                token: fcmToken,
+                notification: {
+                    title: 'سفارش جدید',
+                    body: 'یک سفارش جدید در انتظار تایید دارید'
+                }
             }
         };
 
         const response = await fetch(`https://fcm.googleapis.com/v1/projects/${firebaseConfig.projectId}/messages:send`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${serviceAccount.token}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify(message)
         });
 
         const result = await response.json();
@@ -169,6 +162,7 @@ async function sendNotification(fcmToken) {
         throw error;
     }
 }
+
 
 
 self.addEventListener('message', event => {
