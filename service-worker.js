@@ -131,8 +131,9 @@ async function sendNotification(fcmToken) {
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
             headers: {
-                'Authorization': 'key=AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig',
-                'Content-Type': 'application/json'
+                'Authorization': 'key=921479042468',
+                'Content-Type': 'application/json',
+                'Project-Id': 'ordernotifier-9fabc'
             },
             body: JSON.stringify(message)
         });
