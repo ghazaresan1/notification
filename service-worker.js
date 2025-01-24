@@ -26,42 +26,56 @@ const serviceAccount = {
 let activeUserFCMToken = null;
 
 async function generateJWT(header, claim, privateKey) {
-    const keyData = privateKey
+    // Convert PEM to binary format
+    const pemContents = privateKey
         .replace(/-----BEGIN PRIVATE KEY-----/, '')
         .replace(/-----END PRIVATE KEY-----/, '')
-        .replace(/\s/g, '');
+        .trim();
     
-    const binaryKey = base64StringToArrayBuffer(keyData);
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
     
+    // Import the key with specific parameters
     const cryptoKey = await crypto.subtle.importKey(
-        "pkcs8",
+        'pkcs8',
         binaryKey,
         {
-            name: "RSASSA-PKCS1-v1_5",
-            hash: { name: "SHA-256" },
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([1, 0, 1])
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: 'SHA-256'
         },
         false,
-        ["sign"]
+        ['sign']
     );
 
-    const headerBase64 = base64UrlEncode(JSON.stringify(header));
-    const payloadBase64 = base64UrlEncode(JSON.stringify(claim));
-    const toSign = `${headerBase64}.${payloadBase64}`;
+    // Create JWT components
+    const encodedHeader = btoa(JSON.stringify(header))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    
+    const encodedPayload = btoa(JSON.stringify(claim))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 
-    const signatureBuffer = await crypto.subtle.sign(
-        { name: "RSASSA-PKCS1-v1_5" },
+    // Sign the JWT
+    const textEncoder = new TextEncoder();
+    const signatureInput = `${encodedHeader}.${encodedPayload}`;
+    const signature = await crypto.subtle.sign(
+        'RSASSA-PKCS1-v1_5',
         cryptoKey,
-        new TextEncoder().encode(toSign)
+        textEncoder.encode(signatureInput)
     );
 
-    const signatureBase64 = base64UrlEncode(
-        String.fromCharCode.apply(null, new Uint8Array(signatureBuffer))
-    );
+    // Convert signature to base64url
+    const signatureArray = Array.from(new Uint8Array(signature));
+    const encodedSignature = btoa(String.fromCharCode(...signatureArray))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 
-    return `${headerBase64}.${payloadBase64}.${signatureBase64}`;
+    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
+
 
 function base64UrlEncode(str) {
     return btoa(str)
