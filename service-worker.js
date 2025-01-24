@@ -24,119 +24,43 @@ const serviceAccount = {
   "universe_domain": "googleapis.com"
 };
 let activeUserFCMToken = null;
-async function generateJWT(header, claim, privateKey) {
-    const fullHeader = {
-        alg: 'RS256',
-        typ: 'JWT',
-        kid: serviceAccount.private_key_id
-    };
-    
-    const now = Math.floor(Date.now() / 1000);
-    const fullClaim = {
-        iss: serviceAccount.client_email,
-        sub: serviceAccount.client_email,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: now + 3600,
-        iat: now
-    };
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    // Handle notification click
+    clients.openWindow("https://ghazaresan1.github.io/notification/");
+});
 
-    const keyData = privateKey
-        .replace(/-----BEGIN PRIVATE KEY-----\n/, '')
-        .replace(/\n-----END PRIVATE KEY-----/, '')
-        .replace(/\n/g, '');
-
-    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
-    
-    const cryptoKey = await crypto.subtle.importKey(
-        'pkcs8',
-        binaryKey,
-        {
-            name: 'RSASSA-PKCS1-v1_5',
-            hash: { name: 'SHA-256' }
-        },
-        false,
-        ['sign']
-    );
-
-    const encodedHeader = base64UrlEncode(JSON.stringify(fullHeader));
-    const encodedPayload = base64UrlEncode(JSON.stringify(fullClaim));
-    const signInput = `${encodedHeader}.${encodedPayload}`;
-    
-    const signature = await crypto.subtle.sign(
-        'RSASSA-PKCS1-v1_5',
-        cryptoKey,
-        new TextEncoder().encode(signInput)
-    );
-
-    const encodedSignature = base64UrlEncode(
-        String.fromCharCode(...new Uint8Array(signature))
-    );
-
-    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
-}
-
-
-
-function base64UrlEncode(input) {
-    return btoa(input)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-}
-
-
-async function getAccessToken() {
-    const now = Math.floor(Date.now() / 1000);
-    const header = { alg: 'RS256', typ: 'JWT' };
-    const claim = {
-        iss: serviceAccount.client_email,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: now + 3600,
-        iat: now
-    };
-
-    const jwt = await generateJWT(header, claim, serviceAccount.private_key);
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion: jwt
-        })
-    });
-    
-    const data = await response.json();
-    if (!data.access_token) {
-        console.log('Token response:', data);
-        throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
+// Request notification permission on service worker registration
+self.addEventListener('activate', async () => {
+    try {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+    } catch (error) {
+        console.error('Error requesting notification permission:', error);
     }
-    return data.access_token;
-}
-
+});
 async function sendNotification(fcmToken) {
     try {
         const message = {
             to: fcmToken,
             notification: {
                 title: 'سفارش جدید',
-                body: 'یک سفارش جدید در انتظار تایید دارید'
+                body: 'یک سفارش جدید در انتظار تایید دارید',
+                icon: '/icon.png',
+                badge: '/badge.png',
+                vibrate: [200, 100, 200],
+                tag: 'new-order',
+                requireInteraction: true,
+                renotify: true
             },
-            android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
-                }
+            priority: 'high',
+            data: {
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
             }
         };
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
-            mode: 'no-cors',
             headers: {
                 'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
                 'Content-Type': 'application/json'
@@ -144,12 +68,15 @@ async function sendNotification(fcmToken) {
             body: JSON.stringify(message)
         });
 
-        console.log("Notification sent successfully!");
+        const result = await response.json();
+        console.log("FCM Response:", result);
+        return result;
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
+
 self.addEventListener('message', event => {
     const { username, password, fcmToken } = event.data;
     if (username && password && fcmToken) {
@@ -216,6 +143,7 @@ async function login(username, password) {
 }
 
 let checkOrdersInterval;
+
 
 function startOrderChecks(token) {
     console.log("Starting order checks with token:", token);
