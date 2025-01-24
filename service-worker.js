@@ -26,22 +26,18 @@ const serviceAccount = {
 let activeUserFCMToken = null;
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/node-rsa/1.1.1/NodeRSA.min.js');
 
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js');
+
 async function generateJWT(header, claim, privateKey) {
-    // Initialize RSA with the private key
-    const key = new NodeRSA(privateKey);
-    key.setOptions({ signingScheme: 'pkcs1-sha256' });
+    const encrypt = new JSEncrypt();
+    encrypt.setPrivateKey(privateKey);
     
-    // Create JWT components
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(claim));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
     
-    // Generate signature
-    const signature = key.sign(signatureInput, 'base64');
-    const encodedSignature = signature
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    const signature = encrypt.sign(signatureInput, CryptoJS.SHA256, "sha256");
+    const encodedSignature = base64UrlEncode(signature);
     
     return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
