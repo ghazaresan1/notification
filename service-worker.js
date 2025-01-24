@@ -25,32 +25,34 @@ const serviceAccount = {
 };
 let activeUserFCMToken = null;
 async function generateJWT(header, claim, privateKey) {
-    // Add required JWT headers
+    // Add key ID and algorithm specifications
     const fullHeader = {
-        ...header,
         alg: 'RS256',
         typ: 'JWT',
         kid: serviceAccount.private_key_id
     };
     
-    // Add required JWT claims
+    // Ensure proper timestamp handling
     const now = Math.floor(Date.now() / 1000);
     const fullClaim = {
-        ...claim,
-        iat: now,
+        iss: serviceAccount.client_email,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
+        aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
-        aud: 'https://oauth2.googleapis.com/token'
+        iat: now
     };
-    
-    const encoder = new TextEncoder();
+
+    // Process private key with precise formatting
     const keyData = privateKey
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
-        .replace(/[\r\n]/g, '')
-        .trim();
-    
+        .split('\n')
+        .join('');
+
+    // Create binary key data
     const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
     
+    // Import key with specific algorithm parameters
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
         binaryKey,
@@ -61,23 +63,27 @@ async function generateJWT(header, claim, privateKey) {
         false,
         ['sign']
     );
-    
+
+    // Generate JWT components
     const encodedHeader = base64UrlEncode(JSON.stringify(fullHeader));
     const encodedPayload = base64UrlEncode(JSON.stringify(fullClaim));
-    const toSign = `${encodedHeader}.${encodedPayload}`;
+    const signInput = `${encodedHeader}.${encodedPayload}`;
     
+    // Create signature
     const signature = await crypto.subtle.sign(
         'RSASSA-PKCS1-v1_5',
         cryptoKey,
-        encoder.encode(toSign)
+        new TextEncoder().encode(signInput)
     );
-    
+
+    // Encode final signature
     const encodedSignature = base64UrlEncode(
         String.fromCharCode(...new Uint8Array(signature))
     );
-    
+
     return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
+
 
 
 function base64UrlEncode(input) {
