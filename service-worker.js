@@ -127,7 +127,7 @@ async function getAccessToken() {
 
 async function sendNotification(fcmToken) {
     try {
-        // First get the access token
+        // Get a fresh access token
         const accessToken = await getAccessToken();
         
         const message = {
@@ -136,6 +136,9 @@ async function sendNotification(fcmToken) {
                 notification: {
                     title: 'سفارش جدید',
                     body: 'یک سفارش جدید در انتظار تایید دارید'
+                },
+                android: {
+                    priority: 'high'
                 }
             }
         };
@@ -150,18 +153,19 @@ async function sendNotification(fcmToken) {
         });
 
         const result = await response.json();
-        console.log("FCM Response:", result);
         
-        if (!response.ok) {
-            throw new Error(`FCM Error: ${result.error?.message || 'Unknown error'}`);
+        if (response.ok) {
+            console.log("Notification sent successfully!", result);
+            return result;
         }
         
-        console.log("Notification sent successfully!");
+        throw new Error(`FCM Error: ${result.error?.message}`);
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
+
 
 
 
