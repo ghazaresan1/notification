@@ -24,8 +24,6 @@ const serviceAccount = {
   "universe_domain": "googleapis.com"
 };
 let activeUserFCMToken = null;
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/node-rsa/1.1.1/NodeRSA.min.js');
-
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js');
 
 async function generateJWT(header, claim, privateKey) {
