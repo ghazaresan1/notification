@@ -125,30 +125,31 @@ async function sendNotification(fcmToken) {
                 title: 'سفارش جدید',
                 body: 'یک سفارش جدید در انتظار تایید دارید'
             },
-            priority: 'high'
+            android: {
+                priority: 'high',
+                notification: {
+                    sound: 'default',
+                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                }
+            }
         };
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
             mode: 'no-cors',
             headers: {
-                'Authorization': 'key=921479042468',
-                'Content-Type': 'application/json',
-                'Project-Id': 'ordernotifier-9fabc'
+                'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
         });
 
         console.log("Notification sent successfully!");
-        return true;
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
-
-
-
 self.addEventListener('message', event => {
     const { username, password, fcmToken } = event.data;
     if (username && password && fcmToken) {
@@ -215,15 +216,21 @@ async function login(username, password) {
 }
 
 let checkOrdersInterval;
+
 function startOrderChecks(token) {
     console.log("Starting order checks with token:", token);
+    
+    // Clear any existing interval
     if (checkOrdersInterval) {
         clearInterval(checkOrdersInterval);
     }
     
+    // Immediate first check
     checkNewOrders(token);
     
+    // Set up recurring checks every 30 seconds
     checkOrdersInterval = setInterval(() => {
+        console.log("Performing scheduled order check");
         checkNewOrders(token);
     }, 30000);
 }
