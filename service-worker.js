@@ -120,37 +120,35 @@ async function getAccessToken() {
 async function sendNotification(fcmToken) {
     try {
         const message = {
-            token: fcmToken,
+            to: fcmToken,
             notification: {
                 title: 'سفارش جدید',
                 body: 'یک سفارش جدید در انتظار تایید دارید'
-            }
+            },
+            priority: 'high'
         };
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
             headers: {
-                'Authorization': `key=${firebaseConfig.apiKey}`,
+                'Authorization': `key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
         });
 
-        const result = await response.json();
-        console.log("FCM Response:", result);
-        
-        if (response.ok) {
-            console.log("Notification sent successfully!");
-            return result;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        throw new Error(`FCM Error: ${result.error || 'Unknown error'}`);
+
+        const result = await response.json();
+        console.log("Notification sent successfully!", result);
+        return result;
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
-
 
 
 
