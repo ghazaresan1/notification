@@ -24,24 +24,52 @@ const serviceAccount = {
   "universe_domain": "googleapis.com"
 };
 let activeUserFCMToken = null;
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js');
-
 async function generateJWT(header, claim, privateKey) {
-    const encrypt = new JSEncrypt();
-    encrypt.setPrivateKey(privateKey);
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
     
+    // Extract the key material
+    const keyData = privateKey
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .replace(/[\r\n]/g, '')
+        .trim();
+    
+    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+    
+    // Import the key
+    const cryptoKey = await crypto.subtle.importKey(
+        'pkcs8',
+        binaryKey,
+        {
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: { name: 'SHA-256' }
+        },
+        false,
+        ['sign']
+    );
+    
+    // Create JWT parts
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(claim));
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
+    const toSign = `${encodedHeader}.${encodedPayload}`;
     
-    const signature = encrypt.sign(signatureInput, CryptoJS.SHA256, "sha256");
-    const encodedSignature = base64UrlEncode(signature);
+    // Sign the JWT
+    const signature = await crypto.subtle.sign(
+        'RSASSA-PKCS1-v1_5',
+        cryptoKey,
+        encoder.encode(toSign)
+    );
+    
+    const encodedSignature = base64UrlEncode(
+        String.fromCharCode(...new Uint8Array(signature))
+    );
     
     return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
 
-function base64UrlEncode(str) {
-    return btoa(str)
+function base64UrlEncode(input) {
+    return btoa(input)
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
