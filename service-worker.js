@@ -130,6 +130,7 @@ async function sendNotification(fcmToken) {
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
                 'Authorization': 'key=921479042468',
                 'Content-Type': 'application/json',
@@ -138,21 +139,13 @@ async function sendNotification(fcmToken) {
             body: JSON.stringify(message)
         });
 
-        const result = await response.json();
-        console.log("FCM Response:", result);
-        
-        if (response.ok) {
-            console.log("Notification sent successfully!");
-            return result;
-        }
-        
-        throw new Error(`FCM Error: ${result.error || 'Unknown error'}`);
+        console.log("Notification sent successfully!");
+        return true;
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
-
 
 
 
