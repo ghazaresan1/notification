@@ -25,10 +25,24 @@ const serviceAccount = {
 };
 let activeUserFCMToken = null;
 async function generateJWT(header, claim, privateKey) {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    // Add required JWT headers
+    const fullHeader = {
+        ...header,
+        alg: 'RS256',
+        typ: 'JWT',
+        kid: serviceAccount.private_key_id
+    };
     
-    // Extract the key material
+    // Add required JWT claims
+    const now = Math.floor(Date.now() / 1000);
+    const fullClaim = {
+        ...claim,
+        iat: now,
+        exp: now + 3600,
+        aud: 'https://oauth2.googleapis.com/token'
+    };
+    
+    const encoder = new TextEncoder();
     const keyData = privateKey
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
@@ -37,7 +51,6 @@ async function generateJWT(header, claim, privateKey) {
     
     const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
     
-    // Import the key
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
         binaryKey,
@@ -49,12 +62,10 @@ async function generateJWT(header, claim, privateKey) {
         ['sign']
     );
     
-    // Create JWT parts
-    const encodedHeader = base64UrlEncode(JSON.stringify(header));
-    const encodedPayload = base64UrlEncode(JSON.stringify(claim));
+    const encodedHeader = base64UrlEncode(JSON.stringify(fullHeader));
+    const encodedPayload = base64UrlEncode(JSON.stringify(fullClaim));
     const toSign = `${encodedHeader}.${encodedPayload}`;
     
-    // Sign the JWT
     const signature = await crypto.subtle.sign(
         'RSASSA-PKCS1-v1_5',
         cryptoKey,
@@ -67,6 +78,7 @@ async function generateJWT(header, claim, privateKey) {
     
     return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
+
 
 function base64UrlEncode(input) {
     return btoa(input)
