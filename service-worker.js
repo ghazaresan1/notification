@@ -40,42 +40,35 @@ self.addEventListener('activate', async () => {
     }
 });
 async function sendNotification(fcmToken) {
-    try {
-        const message = {
-            to: fcmToken,
-            notification: {
-                title: 'سفارش جدید',
-                body: 'یک سفارش جدید در انتظار تایید دارید',
-                icon: '/icon.png',
-                badge: '/badge.png',
-                vibrate: [200, 100, 200],
-                tag: 'new-order',
-                requireInteraction: true,
-                renotify: true
-            },
-            priority: 'high',
-            data: {
-                click_action: 'FLUTTER_NOTIFICATION_CLICK'
-            }
-        };
+    const message = {
+        to: fcmToken,
+        notification: {
+            title: 'سفارش جدید',
+            body: 'یک سفارش جدید در انتظار تایید دارید'
+        },
+        data: {
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        }
+    };
 
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(message)
-        });
+    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+    });
 
-        const result = await response.json();
-        console.log("FCM Response:", result);
-        return result;
-    } catch (error) {
-        console.error("Error sending notification:", error);
-        throw error;
+    if (!response.ok) {
+        throw new Error(`FCM request failed: ${response.status}`);
     }
+
+    const result = await response.json();
+    console.log('FCM Response:', result);
+    return result;
 }
+
 
 self.addEventListener('message', event => {
     const { username, password, fcmToken } = event.data;
