@@ -1,6 +1,7 @@
 const AUTH_CACHE_NAME = 'auth-cache';
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
+const admin = require('firebase-admin');
 
 // Firebase config
 const firebaseConfig = {
@@ -23,6 +24,12 @@ const serviceAccount = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-ut04s%40ordernotifier-9fabc.iam.gserviceaccount.com",
   "universe_domain": "googleapis.com"
 };
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: "ordernotifier-9fabc"
+});
+
 let activeUserFCMToken = null;
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
@@ -42,39 +49,16 @@ self.addEventListener('activate', async () => {
 async function sendNotification(fcmToken) {
     try {
         console.log("Starting notification send with FCM token:", fcmToken);
-        
-        const message = {
-            to: fcmToken,
+        return await admin.messaging().send({
+            token: fcmToken,
             notification: {
                 title: 'سفارش جدید',
                 body: 'یک سفارش جدید در انتظار تایید دارید'
             },
-            data: {
-                type: 'new_order',
-                click_action: 'FLUTTER_NOTIFICATION_CLICK'
-            },
             android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
-                }
+                priority: 'high'
             }
-        };
-        console.log("Prepared FCM message:", message);
-
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Authorization': 'key=AIzaSyAZOBvmTQ3Y3iaX3Y4_EkG5DuG_RWpDF4g',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(message)
         });
-        console.log("FCM Response:", response);
-
-        return response;
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
