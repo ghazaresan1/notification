@@ -62,16 +62,24 @@ async function sendNotification(fcmToken) {
     const response = await fetch('https://fcm.googleapis.com/fcm/send', {
         method: 'POST',
         headers: {
-            'Authorization': 'Bearer AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
-            'Content-Type': 'application/json'
+            'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         },
         body: JSON.stringify(message)
     });
 
+    if (!response.ok) {
+        const text = await response.text();
+        console.log('FCM Error Response:', text);
+        throw new Error(`FCM request failed: ${response.status}`);
+    }
+
     const responseData = await response.json();
-    console.log("FCM Response:", responseData);
+    console.log('FCM Success Response:', responseData);
     return responseData;
 }
+
 
 
 
