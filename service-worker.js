@@ -57,11 +57,12 @@ async function sendNotification(fcmToken) {
                 priority: 'high',
                 notification: {
                     sound: 'default',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                    click_action: 'FLUTTER_NOTIFICATION_CLICK',
+                    channel_id: "orders_channel"
                 }
             }
         };
-        console.log("Prepared FCM message:", message);
+        console.log("Prepared FCM message:", JSON.stringify(message, null, 2));
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
@@ -72,8 +73,10 @@ async function sendNotification(fcmToken) {
             },
             body: JSON.stringify(message)
         });
-        console.log("FCM Response:", response);
-
+        
+        console.log("FCM Response Status:", response.status);
+        console.log("FCM Response Headers:", JSON.stringify([...response.headers], null, 2));
+        
         return response;
     } catch (error) {
         console.error("Error sending notification:", error);
