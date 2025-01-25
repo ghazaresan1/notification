@@ -47,32 +47,44 @@ async function sendNotification(fcmToken) {
                 title: 'سفارش جدید',
                 body: 'یک سفارش جدید در انتظار تایید دارید'
             },
+            data: {
+                type: 'new_order',
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
+            },
             android: {
                 priority: 'high',
                 notification: {
                     sound: 'default',
                     click_action: 'FLUTTER_NOTIFICATION_CLICK'
                 }
-            }
+            },
+            priority: 'high'
         };
 
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-        'Authorization': 'key=YOUR_SERVER_KEY',
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(message)
-});
+        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message)
+        });
 
-        console.log("Notification sent successfully!");
+        const responseData = await response.json();
+        console.log("FCM Response:", responseData);
+        
+        if (responseData.success === 1) {
+            console.log("Notification sent successfully!");
+            return responseData;
+        } else {
+            throw new Error(`FCM send failed: ${JSON.stringify(responseData)}`);
+        }
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
-const responseData = await response.json();
-console.log("FCM Response:", responseData);
 }
+
 
 self.addEventListener('message', event => {
     const { username, password, fcmToken } = event.data;
