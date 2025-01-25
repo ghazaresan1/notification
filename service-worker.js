@@ -67,7 +67,7 @@ async function sendNotification(fcmToken) {
             method: 'POST',
             mode: 'no-cors',
             headers: {
-                'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+                'Authorization': 'key=AIzaSyAZOBvmTQ3Y3iaX3Y4_EkG5DuG_RWpDF4g',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(message)
