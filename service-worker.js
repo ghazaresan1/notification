@@ -40,49 +40,39 @@ self.addEventListener('activate', async () => {
     }
 });
 async function sendNotification(fcmToken) {
-    try {
-        const message = {
-            to: fcmToken,
+    const message = {
+        to: fcmToken,
+        notification: {
+            title: 'سفارش جدید',
+            body: 'یک سفارش جدید در انتظار تایید دارید'
+        },
+        data: {
+            type: 'new_order',
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        },
+        android: {
+            priority: 'high',
             notification: {
-                title: 'سفارش جدید',
-                body: 'یک سفارش جدید در انتظار تایید دارید'
-            },
-            data: {
-                type: 'new_order',
+                sound: 'default',
                 click_action: 'FLUTTER_NOTIFICATION_CLICK'
-            },
-            android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
-                }
-            },
-            priority: 'high'
-        };
-
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'key=AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(message)
-        });
-
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`FCM request failed: ${response.status}, ${text}`);
+            }
         }
+    };
 
-        const responseData = await response.json();
-        console.log("FCM Response:", responseData);
-        return responseData;
-    } catch (error) {
-        console.error("Error sending notification:", error);
-        throw error;
-    }
+    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer AAAALxDzZKE:APA91bFPmUBFRlHJDPUV_0cH-vOxDMF_4GxQ_Ti_z_KHGrXJqKF-zz1FUjqN2o4S4Zk8-tZQz9SAcGZm4uXDGRz8kHzJH7zB_H0CVULHVVGmY5KFgXRvfgGrF7pVpzjANNhXy9kmzGrY',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+    });
+
+    const responseData = await response.json();
+    console.log("FCM Response:", responseData);
+    return responseData;
 }
+
 
 
 
