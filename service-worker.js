@@ -40,21 +40,24 @@ self.addEventListener('activate', async () => {
     }
 });
 async function sendNotification(fcmToken) {
-    try {
-        const message = {
-            to: fcmToken,
+    const message = {
+        to: fcmToken,
+        notification: {
+            title: 'سفارش جدید',
+            body: 'یک سفارش جدید در انتظار تایید دارید'
+        },
+        data: {
+            type: 'new_order',
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        },
+        android: {
+            priority: 'high',
             notification: {
-                title: 'سفارش جدید',
-                body: 'یک سفارش جدید در انتظار تایید دارید'
-            },
-            android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
-                }
+                sound: 'default',
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
             }
-        };
+        }
+    };
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
