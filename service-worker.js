@@ -41,6 +41,8 @@ self.addEventListener('activate', async () => {
 });
 async function sendNotification(fcmToken) {
     try {
+        console.log("Starting notification send with FCM token:", fcmToken);
+        
         const message = {
             to: fcmToken,
             notification: {
@@ -59,6 +61,7 @@ async function sendNotification(fcmToken) {
                 }
             }
         };
+        console.log("Prepared FCM message:", message);
 
         const response = await fetch('https://fcm.googleapis.com/fcm/send', {
             method: 'POST',
@@ -69,8 +72,8 @@ async function sendNotification(fcmToken) {
             },
             body: JSON.stringify(message)
         });
+        console.log("FCM Response:", response);
 
-        console.log("Notification sent successfully!");
         return response;
     } catch (error) {
         console.error("Error sending notification:", error);
