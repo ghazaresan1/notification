@@ -1,3 +1,6 @@
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js');
+
+
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
 const PROJECT_ID = 'ordernotifier-9fabc';
