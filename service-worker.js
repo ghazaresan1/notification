@@ -1,35 +1,37 @@
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-messaging.js');
+
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
+
+firebase.initializeApp({
+    apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
+    projectId: "ordernotifier-9fabc",
+    messagingSenderId: "921479042468"
+});
+
+const messaging = firebase.messaging();
 
 let activeUserFCMToken = null;
 let checkOrdersInterval;
 
 async function sendNotification(fcmToken) {
     try {
-        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'key=YOUR_SERVER_KEY',
-                'Content-Type': 'application/json'
+        await messaging.send({
+            token: fcmToken,
+            notification: {
+                title: 'سفارش جدید',
+                body: 'یک سفارش جدید در انتظار تایید دارید'
             },
-            body: JSON.stringify({
-                to: fcmToken,
-                notification: {
-                    title: 'سفارش جدید',
-                    body: 'یک سفارش جدید در انتظار تایید دارید'
-                },
-                android: {
-                    priority: 'high'
-                }
-            })
+            android: {
+                priority: 'high'
+            }
         });
-        return response.json();
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
-
 
 async function login(username, password) {
     try {
@@ -70,7 +72,6 @@ async function checkNewOrders(token) {
             },
             body: JSON.stringify({})
         });
-
         const orders = await response.json();
         if (Array.isArray(orders)) {
             const hasNewOrder = orders.some(order => order.Status === 0);
