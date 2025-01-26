@@ -3,7 +3,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
     projectId: "ordernotifier-9fabc",
     messagingSenderId: "921479042468",
-    appId: "1:921479042468:web:YOUR_APP_ID"
+    appId: "1:921479042468:web:171f31c5df044d0d145d31"
 };
 
 // Initialize Firebase
