@@ -1,6 +1,3 @@
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js');
-
-
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
 const PROJECT_ID = 'ordernotifier-9fabc';
@@ -68,13 +65,30 @@ async function getGoogleAccessToken() {
 }
 
 async function signWithPrivateKey(input, privateKey) {
-    const sig = new KJUR.crypto.Signature({"alg": "SHA256withRSA"});
-    sig.init(privateKey);
-    sig.updateString(input);
-    const signatureBytes = sig.sign();
-    return btoa(signatureBytes);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    
+    const algorithm = {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: {name: 'SHA-256'},
+    };
+    
+    const extractedKey = await crypto.subtle.importKey(
+        'pkcs8',
+        privateKey,
+        algorithm,
+        false,
+        ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign(
+        algorithm,
+        extractedKey,
+        data
+    );
+    
+    return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
-
 async function login(username, password) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
