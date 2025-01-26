@@ -23,13 +23,24 @@ admin.initializeApp({
 
 let activeUserFCMToken = null;
 let checkOrdersInterval;
+
 async function sendNotification(fcmToken) {
-    const response = await fetch('YOUR_BACKEND_URL/send-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: fcmToken })
-    });
-    return response;
+    try {
+        console.log("Starting notification send with FCM token:", fcmToken);
+        return await admin.messaging().send({
+            token: fcmToken,
+            notification: {
+                title: 'سفارش جدید',
+                body: 'یک سفارش جدید در انتظار تایید دارید'
+            },
+            android: {
+                priority: 'high'
+            }
+        });
+    } catch (error) {
+        console.error("Error sending notification:", error);
+        throw error;
+    }
 }
 
 async function login(username, password) {
