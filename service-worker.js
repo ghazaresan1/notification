@@ -1,5 +1,6 @@
-importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-messaging.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
+
 
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
