@@ -1,16 +1,7 @@
-const AUTH_CACHE_NAME = 'auth-cache';
 const API_BASE_URL = 'https://app.ghazaresan.com';
 const SECURITY_KEY = 'Asdiw2737y#376';
 const admin = require('firebase-admin');
 
-// Firebase config
-const firebaseConfig = {
-    apiKey: "AIzaSyCaBHVGco83IAgJVsaczVK8g7GBNPUVJig",
-    projectId: "ordernotifier-9fabc",
-    messagingSenderId: "921479042468"
-};
-
-// Service Account details
 const serviceAccount = {
   "type": "service_account",
   "project_id": "ordernotifier-9fabc",
@@ -31,21 +22,8 @@ admin.initializeApp({
 });
 
 let activeUserFCMToken = null;
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    // Handle notification click
-    clients.openWindow("https://ghazaresan1.github.io/notification/");
-});
+let checkOrdersInterval;
 
-// Request notification permission on service worker registration
-self.addEventListener('activate', async () => {
-    try {
-        const permission = await Notification.requestPermission();
-        console.log('Notification permission:', permission);
-    } catch (error) {
-        console.error('Error requesting notification permission:', error);
-    }
-});
 async function sendNotification(fcmToken) {
     try {
         console.log("Starting notification send with FCM token:", fcmToken);
@@ -65,18 +43,6 @@ async function sendNotification(fcmToken) {
     }
 }
 
-
-
-
-
-self.addEventListener('message', event => {
-    const { username, password, fcmToken } = event.data;
-    if (username && password && fcmToken) {
-        activeUserFCMToken = fcmToken;
-        startLoginAndChecks(username, password);
-    }
-});
-
 async function login(username, password) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
@@ -89,44 +55,14 @@ async function login(username, password) {
             },
             body: JSON.stringify({ UserName: username, Password: password })
         });
-
+        
         const data = await response.json();
         console.log('Login response data:', data);
-
+        
         if (data && data.Token) {
-            const cache = await caches.open(AUTH_CACHE_NAME);
-            await Promise.all([
-                cache.put('auth-token', new Response(data.Token)),
-                cache.put('restaurant-info', new Response(JSON.stringify({
-                    name: data.RestaurantName,
-                    canEditMenu: data.CanEditMenu
-                })))
-            ]);
-            
-            clients.matchAll().then(clients => {
-                clients.forEach(client => {
-                    client.postMessage({
-                        type: 'loginResult',
-                        success: true,
-                        message: 'Login successful'
-                    });
-                });
-            });
-            
             startOrderChecks(data.Token);
             return data.Token;
         }
-        
-        clients.matchAll().then(clients => {
-            clients.forEach(client => {
-                client.postMessage({
-                    type: 'loginResult',
-                    success: false,
-                    message: 'Invalid credentials'
-                });
-            });
-        });
-        
         throw new Error('Invalid credentials');
     } catch (error) {
         console.log('Login failed:', error.message);
@@ -134,45 +70,20 @@ async function login(username, password) {
     }
 }
 
-let checkOrdersInterval;
-
-
-function startOrderChecks(token) {
-    console.log("Starting order checks with token:", token);
-    
-    // Clear any existing interval
-    if (checkOrdersInterval) {
-        clearInterval(checkOrdersInterval);
-    }
-    
-    // Immediate first check
-    checkNewOrders(token);
-    
-    // Set up recurring checks every 30 seconds
-    checkOrdersInterval = setInterval(() => {
-        console.log("Performing scheduled order check");
-        checkNewOrders(token);
-    }, 30000);
-}
-
 async function checkNewOrders(token) {
     try {
-        console.log("Checking orders with token:", token);
         const response = await fetch(`${API_BASE_URL}/api/Orders/GetOrders`, {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
                 'authorizationcode': token,
                 'content-type': 'application/json',
-                'referer': 'https://portal.ghazaresan.com/',
                 'securitykey': SECURITY_KEY,
             },
             body: JSON.stringify({})
         });
 
         const orders = await response.json();
-        console.log("Orders response:", orders);
-        
         if (Array.isArray(orders)) {
             const hasNewOrder = orders.some(order => order.Status === 0);
             if (hasNewOrder && activeUserFCMToken) {
@@ -185,13 +96,21 @@ async function checkNewOrders(token) {
     }
 }
 
-function startLoginAndChecks(username, password) {
-    login(username, password).then(token => {
-        setInterval(() => {
-            checkNewOrders(token);
-        }, 30000);
-    });
+function startOrderChecks(token) {
+    if (checkOrdersInterval) {
+        clearInterval(checkOrdersInterval);
+    }
+    checkNewOrders(token);
+    checkOrdersInterval = setInterval(() => checkNewOrders(token), 30000);
 }
+
+self.addEventListener('message', event => {
+    const { username, password, fcmToken } = event.data;
+    if (username && password && fcmToken) {
+        activeUserFCMToken = fcmToken;
+        login(username, password);
+    }
+});
 
 self.addEventListener('install', event => {
     self.skipWaiting();
