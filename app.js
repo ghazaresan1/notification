@@ -1,11 +1,9 @@
 async function requestNotificationPermission() {
-    const permission = await Notification.requestPermission();
+    const permission = await window.Notification.requestPermission();
     if (permission === 'granted') {
-        // Generate a unique token for this device
         const deviceToken = generateDeviceToken();
         const registration = await registerServiceWorker();
         
-        // Send the token to service worker
         registration.active.postMessage({
             fcmToken: deviceToken
         });
@@ -13,7 +11,6 @@ async function requestNotificationPermission() {
 }
 
 function generateDeviceToken() {
-    // Generate a unique identifier for this device
     return 'device_' + Math.random().toString(36).substr(2, 9);
 }
 
@@ -25,5 +22,4 @@ async function registerServiceWorker() {
     return registration;
 }
 
-// Start the notification setup
 requestNotificationPermission();
