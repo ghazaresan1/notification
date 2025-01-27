@@ -44,12 +44,21 @@ async function sendNotification(fcmToken) {
 
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
+    console.log("=== Starting JWT Generation ===");
+    console.log("Timestamp:", now);
+    console.log("CLIENT_EMAIL:", CLIENT_EMAIL);
+    console.log("PRIVATE_KEY Structure:", {
+        length: PRIVATE_KEY.length,
+        hasBegin: PRIVATE_KEY.includes('BEGIN'),
+        hasEnd: PRIVATE_KEY.includes('END'),
+        lineCount: PRIVATE_KEY.split('\n').length
+    });
     
     const header = {
         alg: 'RS256',
         typ: 'JWT'
     };
-
+ console.log("Header:", JSON.stringify(header));
     const payload = {
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
@@ -57,6 +66,8 @@ async function getGoogleAccessToken() {
         iss: CLIENT_EMAIL,
         scope: 'https://www.googleapis.com/auth/firebase.messaging'
     };
+    console.log("Payload:", JSON.stringify(payload));
+
 
     const base64UrlEncode = (input) => {
         const base64 = typeof input === 'string' 
@@ -75,6 +86,7 @@ async function getGoogleAccessToken() {
         .join(''));
 
     const keyArray = new Uint8Array(keyData.length);
+
     for (let i = 0; i < keyData.length; i++) {
         keyArray[i] = keyData.charCodeAt(i);
     }
@@ -89,6 +101,7 @@ async function getGoogleAccessToken() {
         false,
         ['sign']
     );
+ console.log("Processed Key Length:", keyArray.length);
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
@@ -110,7 +123,12 @@ async function getGoogleAccessToken() {
     });
 
     const data = await response.json();
-    
+      console.log("Final JWT Length:", jwt.length);
+    console.log("JWT Structure:", {
+        headerLength: encodedHeader.length,
+        payloadLength: encodedPayload.length,
+        signatureLength: signature.length
+    });
     if (data.access_token) {
         return data.access_token;
     }
