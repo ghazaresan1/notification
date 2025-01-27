@@ -45,37 +45,70 @@ async function sendNotification(fcmToken) {
 
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
-    const jwtPayload = {
-        iss: CLIENT_EMAIL,
-        sub: CLIENT_EMAIL,
-        aud: 'https://oauth2.googleapis.com/token',
-        iat: now,
-        exp: now + 3600,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging'
+    
+    // Create standardized JWT header
+    const header = {
+        alg: 'RS256',
+        typ: 'JWT'
     };
 
-    const encodedHeader = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-    const encodedPayload = btoa(JSON.stringify(jwtPayload));
-    const signInput = `${encodedHeader}.${encodedPayload}`;
-    const signature = await signWithPrivateKey(signInput, PRIVATE_KEY);
-    const jwt = `${signInput}.${signature}`;
+    // Create precise JWT payload
+    const payload = {
+        iss: CLIENT_EMAIL,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: now + 3600,
+        iat: now
+    };
 
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    // Encode with URL-safe base64
+    const encodeSegment = (segment) => {
+        return Buffer.from(JSON.stringify(segment))
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    };
+
+    const encodedHeader = encodeSegment(header);
+    const encodedPayload = encodeSegment(payload);
+    const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+    // Generate precise signature
+    const key = PRIVATE_KEY.replace(/\\n/g, '\n');
+    const signature = await crypto.subtle.sign(
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        await crypto.subtle.importKey(
+            'pkcs8',
+            new TextEncoder().encode(key),
+            { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+            false,
+            ['sign']
+        ),
+        new TextEncoder().encode(signatureInput)
+    );
+
+    const encodedSignature = Buffer.from(signature)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+    const jwt = `${signatureInput}.${encodedSignature}`;
+    
+    const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
     });
 
-    const data = await tokenResponse.json();
-    console.log("Token Response Data:", data);
+    const data = await response.json();
+    console.log("Complete Token Response:", data);
     
-    if (!data.access_token) {
-        throw new Error('Failed to obtain access token: ' + JSON.stringify(data));
+    if (data.access_token) {
+        return data.access_token;
     }
-    
-    return data.access_token;
+    throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
 
 
