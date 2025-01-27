@@ -46,13 +46,11 @@ async function sendNotification(fcmToken) {
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
     
-    // Create standardized JWT header
     const header = {
         alg: 'RS256',
         typ: 'JWT'
     };
 
-    // Create precise JWT payload
     const payload = {
         iss: CLIENT_EMAIL,
         scope: 'https://www.googleapis.com/auth/firebase.messaging',
@@ -61,10 +59,9 @@ async function getGoogleAccessToken() {
         iat: now
     };
 
-    // Encode with URL-safe base64
+    // Browser-compatible base64 encoding
     const encodeSegment = (segment) => {
-        return Buffer.from(JSON.stringify(segment))
-            .toString('base64')
+        return btoa(JSON.stringify(segment))
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=/g, '');
@@ -74,7 +71,6 @@ async function getGoogleAccessToken() {
     const encodedPayload = encodeSegment(payload);
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    // Generate precise signature
     const key = PRIVATE_KEY.replace(/\\n/g, '\n');
     const signature = await crypto.subtle.sign(
         { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
@@ -88,8 +84,7 @@ async function getGoogleAccessToken() {
         new TextEncoder().encode(signatureInput)
     );
 
-    const encodedSignature = Buffer.from(signature)
-        .toString('base64')
+    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
@@ -110,6 +105,7 @@ async function getGoogleAccessToken() {
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
+
 
 
 async function signWithPrivateKey(input, privateKey) {
