@@ -65,8 +65,17 @@ async function getGoogleAccessToken() {
 }
 
 async function signWithPrivateKey(input, privateKey) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(input);
+    // Remove quotes and convert PEM to binary
+    const pemContent = privateKey.replace(/"/g, '');
+    const pemHeader = '-----BEGIN PRIVATE KEY-----';
+    const pemFooter = '-----END PRIVATE KEY-----';
+    const pemContents = pemContent
+        .replace(pemHeader, '')
+        .replace(pemFooter, '')
+        .replace(/\n/g, '');
+    
+    // Convert base64 to binary
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
     
     const algorithm = {
         name: 'RSASSA-PKCS1-v1_5',
@@ -75,11 +84,14 @@ async function signWithPrivateKey(input, privateKey) {
     
     const extractedKey = await crypto.subtle.importKey(
         'pkcs8',
-        privateKey,
+        binaryKey,
         algorithm,
         false,
         ['sign']
     );
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
     
     const signature = await crypto.subtle.sign(
         algorithm,
@@ -89,6 +101,7 @@ async function signWithPrivateKey(input, privateKey) {
     
     return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
+
 async function login(username, password) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/Authorization/Authenticate`, {
