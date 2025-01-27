@@ -47,36 +47,41 @@ async function getGoogleAccessToken() {
     
     const header = {
         alg: 'RS256',
-        typ: 'JWT',
-        kid: CLIENT_EMAIL // Adding key ID back in
+        typ: 'JWT'
     };
 
     const payload = {
         aud: 'https://oauth2.googleapis.com/token',
-        iss: CLIENT_EMAIL,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
         exp: now + 3600,
-        iat: now
+        iat: now,
+        iss: CLIENT_EMAIL,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging'
     };
 
     const base64UrlEncode = (input) => {
         const base64 = typeof input === 'string' 
             ? btoa(input)
-            : btoa(String.fromCharCode(...input));
+            : btoa(String.fromCharCode.apply(null, input));
         return base64
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
-            .replace(/=+$/, '');
+            .replace(/=/g, '');
     };
 
-    // Process private key
     const keyData = atob(PRIVATE_KEY
-        .replace(/-----[^-]*-----/g, '')
-        .replace(/[\n\r\s]/g, ''));
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .split('\n')
+        .join(''));
+
+    const keyArray = new Uint8Array(keyData.length);
+    for (let i = 0; i < keyData.length; i++) {
+        keyArray[i] = keyData.charCodeAt(i);
+    }
 
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
-        new Uint8Array([...keyData].map(c => c.charCodeAt(0))),
+        keyArray,
         {
             name: 'RSASSA-PKCS1-v1_5',
             hash: { name: 'SHA-256' }
