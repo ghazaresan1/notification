@@ -1,14 +1,22 @@
 async function initializeNotifications() {
-    const registration = await registerServiceWorker();
-    
-    // Generate a device token
-    const deviceToken = 'device_' + Math.random().toString(36).substr(2, 9);
-    
-    // Send token to service worker
-    registration.active.postMessage({
-        fcmToken: deviceToken
-    });
+    try {
+        const registration = await registerServiceWorker();
+        await registration.active || new Promise(resolve => {
+            registration.addEventListener('activate', () => resolve(registration.active));
+        });
+        
+        // Wait for Firebase Messaging
+        const messaging = firebase.messaging();
+        const fcmToken = await messaging.getToken();
+        
+        registration.active.postMessage({
+            fcmToken: fcmToken
+        });
+    } catch (error) {
+        console.error("Notification initialization error:", error);
+    }
 }
+
 
 async function registerServiceWorker() {
     const registration = await navigator.serviceWorker.register('/notification/service-worker.js', {
