@@ -56,29 +56,21 @@ async function getGoogleAccessToken() {
         const now = Math.floor(Date.now() / 1000);
         const jwt = {
             iss: CLIENT_EMAIL,
-            sub: CLIENT_EMAIL,
             scope: 'https://www.googleapis.com/auth/firebase.messaging',
             aud: 'https://oauth2.googleapis.com/token',
             exp: now + 3600,
-            iat: now,
-            type: 'service_account'
+            iat: now
         };
 
-        const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT', kid: CLIENT_EMAIL }));
+        const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
         const payload = btoa(JSON.stringify(jwt));
         const signedInput = `${header}.${payload}`;
         
-        const cleanPrivateKey = PRIVATE_KEY
-            .replace(/\\n/g, '\n')
-            .replace(/^"|"$/g, '');
+        // Simplified private key handling
+        const cleanPrivateKey = PRIVATE_KEY.replace(/\\n/g, '\n');
         
         const signature = await signWithPrivateKey(signedInput, cleanPrivateKey);
         const signedJwt = `${signedInput}.${signature}`;
-
-        console.log("Token Request Payload:", {
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion: signedJwt.substring(0, 50) + '...'
-        });
 
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -89,11 +81,14 @@ async function getGoogleAccessToken() {
         });
 
         const data = await response.json();
-        console.log("Full Token Response:", JSON.stringify(data, null, 2));
+        console.log("Token Response:", data);
         
-        return data.access_token;
+        if (data.access_token) {
+            return data.access_token;
+        }
+        throw new Error(data.error_description || data.error || 'Failed to get access token');
     } catch (error) {
-        console.error("Detailed Token Error:", error);
+        console.error("Token Generation Error:", error);
         throw error;
     }
 }
