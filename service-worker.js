@@ -56,6 +56,7 @@ async function getGoogleAccessToken() {
         const now = Math.floor(Date.now() / 1000);
         const jwt = {
             iss: CLIENT_EMAIL,
+            sub: CLIENT_EMAIL,
             scope: 'https://www.googleapis.com/auth/firebase.messaging',
             aud: 'https://oauth2.googleapis.com/token',
             exp: now + 3600,
@@ -66,11 +67,16 @@ async function getGoogleAccessToken() {
         const payload = btoa(JSON.stringify(jwt));
         const signedInput = `${header}.${payload}`;
         
-        // Clean private key string
-        const cleanPrivateKey = PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '');
+        // Ensure private key is properly formatted
+        const cleanPrivateKey = PRIVATE_KEY
+            .replace(/\\n/g, '\n')
+            .replace(/^"/, '')
+            .replace(/"$/, '');
         
         const signature = await signWithPrivateKey(signedInput, cleanPrivateKey);
         const signedJwt = `${signedInput}.${signature}`;
+
+        console.log("Generated JWT:", signedJwt.substring(0, 50) + "...");
 
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -81,13 +87,19 @@ async function getGoogleAccessToken() {
         });
 
         const data = await response.json();
-        console.log("Token Response:", data);
+        console.log("Token Generation Response:", data);
+        
+        if (!data.access_token) {
+            throw new Error("No access token received");
+        }
+        
         return data.access_token;
     } catch (error) {
-        console.error("Error getting access token:", error);
+        console.error("Token Generation Error:", error);
         throw error;
     }
 }
+
 async function signWithPrivateKey(input, privateKey) {
     // Remove quotes and convert PEM to binary
     const pemContent = privateKey.replace(/"/g, '');
