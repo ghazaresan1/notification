@@ -47,11 +47,11 @@ async function getGoogleAccessToken() {
     console.log("=== Starting JWT Generation ===");
     console.log("Timestamp:", now);
     console.log("CLIENT_EMAIL:", CLIENT_EMAIL);
-    console.log("PRIVATE_KEY:", {
+    console.log("PRIVATE_KEY Details:", JSON.stringify({
         length: PRIVATE_KEY.length,
         firstChars: PRIVATE_KEY.substring(0, 50),
         lastChars: PRIVATE_KEY.substring(PRIVATE_KEY.length - 50)
-    });
+    }, null, 2));
 
     const header = {
         alg: 'RS256',
@@ -68,10 +68,10 @@ async function getGoogleAccessToken() {
         scope: 'https://www.googleapis.com/auth/firebase.messaging'
     };
 
-    console.log("JWT Components:", {
+    console.log("JWT Components:", JSON.stringify({
         header: header,
         payload: payload
-    });
+    }, null, 2));
 
     const base64UrlEncode = (input) => {
         let base64;
@@ -87,17 +87,17 @@ async function getGoogleAccessToken() {
     const encodedPayload = base64UrlEncode(payload);
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    console.log("Encoded Components:", {
+    console.log("Encoded Components:", JSON.stringify({
         header: encodedHeader,
         payload: encodedPayload,
         signatureInput: signatureInput
-    });
+    }, null, 2));
 
-    // Process private key
     const cleanKey = PRIVATE_KEY
         .replace(/-----[^-]*-----/g, '')
         .replace(/[\n\r\s]/g, '');
     console.log("Cleaned Key Length:", cleanKey.length);
+    console.log("First 50 chars of cleaned key:", cleanKey.substring(0, 50));
 
     const keyData = new Uint8Array(atob(cleanKey).split('').map(c => c.charCodeAt(0)));
     console.log("Key Data Length:", keyData.length);
@@ -122,14 +122,15 @@ async function getGoogleAccessToken() {
     const signature = base64UrlEncode(signatureBuffer);
     const jwt = `${signatureInput}.${signature}`;
 
-    console.log("Final JWT:", {
+    console.log("Final JWT Details:", JSON.stringify({
         length: jwt.length,
         parts: {
             header: jwt.split('.')[0].length,
             payload: jwt.split('.')[1].length,
             signature: jwt.split('.')[2].length
-        }
-    });
+        },
+        firstChars: jwt.substring(0, 50)
+    }, null, 2));
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -138,13 +139,14 @@ async function getGoogleAccessToken() {
     });
 
     const data = await response.json();
-    console.log("Token Response:", data);
+    console.log("Token Response:", JSON.stringify(data, null, 2));
 
     if (data.access_token) {
         return data.access_token;
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
+
 
 async function signWithPrivateKey(input, privateKey) {
     // Convert the input string to bytes
