@@ -60,23 +60,25 @@ async function getGoogleAccessToken() {
             scope: 'https://www.googleapis.com/auth/firebase.messaging',
             aud: 'https://oauth2.googleapis.com/token',
             exp: now + 3600,
-            iat: now
+            iat: now,
+            type: 'service_account'
         };
 
-        const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+        const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT', kid: CLIENT_EMAIL }));
         const payload = btoa(JSON.stringify(jwt));
         const signedInput = `${header}.${payload}`;
         
-        // Ensure private key is properly formatted
         const cleanPrivateKey = PRIVATE_KEY
             .replace(/\\n/g, '\n')
-            .replace(/^"/, '')
-            .replace(/"$/, '');
+            .replace(/^"|"$/g, '');
         
         const signature = await signWithPrivateKey(signedInput, cleanPrivateKey);
         const signedJwt = `${signedInput}.${signature}`;
 
-        console.log("Generated JWT:", signedJwt.substring(0, 50) + "...");
+        console.log("Token Request Payload:", {
+            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            assertion: signedJwt.substring(0, 50) + '...'
+        });
 
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -87,18 +89,15 @@ async function getGoogleAccessToken() {
         });
 
         const data = await response.json();
-        console.log("Token Generation Response:", data);
-        
-        if (!data.access_token) {
-            throw new Error("No access token received");
-        }
+        console.log("Full Token Response:", JSON.stringify(data, null, 2));
         
         return data.access_token;
     } catch (error) {
-        console.error("Token Generation Error:", error);
+        console.error("Detailed Token Error:", error);
         throw error;
     }
 }
+
 
 async function signWithPrivateKey(input, privateKey) {
     // Remove quotes and convert PEM to binary
