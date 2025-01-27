@@ -59,7 +59,6 @@ async function getGoogleAccessToken() {
         iat: now
     };
 
-    // Browser-compatible base64 encoding
     const encodeSegment = (segment) => {
         return btoa(JSON.stringify(segment))
             .replace(/\+/g, '-')
@@ -71,16 +70,29 @@ async function getGoogleAccessToken() {
     const encodedPayload = encodeSegment(payload);
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    const key = PRIVATE_KEY.replace(/\\n/g, '\n');
+    // Extract the key content between the markers
+    const keyContent = PRIVATE_KEY
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .replace(/\s/g, '');
+    
+    // Convert base64 to binary
+    const binaryKey = Uint8Array.from(atob(keyContent), c => c.charCodeAt(0));
+    
+    const cryptoKey = await crypto.subtle.importKey(
+        'pkcs8',
+        binaryKey,
+        {
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: 'SHA-256'
+        },
+        false,
+        ['sign']
+    );
+
     const signature = await crypto.subtle.sign(
-        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-        await crypto.subtle.importKey(
-            'pkcs8',
-            new TextEncoder().encode(key),
-            { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-            false,
-            ['sign']
-        ),
+        'RSASSA-PKCS1-v1_5',
+        cryptoKey,
         new TextEncoder().encode(signatureInput)
     );
 
@@ -98,15 +110,13 @@ async function getGoogleAccessToken() {
     });
 
     const data = await response.json();
-    console.log("Complete Token Response:", data);
+    console.log("Token Response:", data);
     
     if (data.access_token) {
         return data.access_token;
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
-
-
 
 async function signWithPrivateKey(input, privateKey) {
     // Convert the input string to bytes
