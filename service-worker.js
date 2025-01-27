@@ -52,33 +52,42 @@ console.log("FCM Token Used:", fcmToken);
 
 
 async function getGoogleAccessToken() {
-    const now = Math.floor(Date.now() / 1000);
-    const jwt = {
-        iss: CLIENT_EMAIL,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: now + 3600,
-        iat: now
-    };
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        const jwt = {
+            iss: CLIENT_EMAIL,
+            scope: 'https://www.googleapis.com/auth/firebase.messaging',
+            aud: 'https://oauth2.googleapis.com/token',
+            exp: now + 3600,
+            iat: now
+        };
 
-    const base64Header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-    const base64Payload = btoa(JSON.stringify(jwt));
-    const signedInput = `${base64Header}.${base64Payload}`;
-    const signature = await signWithPrivateKey(signedInput, PRIVATE_KEY);
-    const signedJwt = `${signedInput}.${signature}`;
+        const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+        const payload = btoa(JSON.stringify(jwt));
+        const signedInput = `${header}.${payload}`;
+        
+        // Clean private key string
+        const cleanPrivateKey = PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '');
+        
+        const signature = await signWithPrivateKey(signedInput, cleanPrivateKey);
+        const signedJwt = `${signedInput}.${signature}`;
 
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signedJwt}`
-    });
+        const response = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signedJwt}`
+        });
 
-    const tokenData = await tokenResponse.json();
-    return tokenData.access_token;
+        const data = await response.json();
+        console.log("Token Response:", data);
+        return data.access_token;
+    } catch (error) {
+        console.error("Error getting access token:", error);
+        throw error;
+    }
 }
-
 async function signWithPrivateKey(input, privateKey) {
     // Remove quotes and convert PEM to binary
     const pemContent = privateKey.replace(/"/g, '');
