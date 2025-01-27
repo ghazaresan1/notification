@@ -39,7 +39,9 @@ async function sendNotification(fcmToken) {
         });
 
         const result = await response.json();
-        console.log("FCM Send Result:", result);
+       console.log("FCM Response Status:", response.status);
+console.log("FCM Response Full:", JSON.stringify(result, null, 2));
+console.log("FCM Token Used:", fcmToken);
         return result;
 
     } catch (error) {
