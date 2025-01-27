@@ -57,7 +57,7 @@ async function getGoogleAccessToken() {
         kid: CLIENT_EMAIL
     };
 
-    const payload = {
+   const payload = {
         iss: CLIENT_EMAIL,
         sub: CLIENT_EMAIL,
         scope: 'https://www.googleapis.com/auth/firebase.messaging',
@@ -65,8 +65,11 @@ async function getGoogleAccessToken() {
         exp: now + 3600,
         iat: now
     };
+  console.log("Header:", JSON.stringify(header));
+    console.log("Payload:", JSON.stringify(payload));
 
-    const base64UrlEncode = (str) => {
+
+  const base64UrlEncode = (str) => {
         const base64 = btoa(str);
         return base64
             .replace(/=/g, '')
@@ -74,11 +77,15 @@ async function getGoogleAccessToken() {
             .replace(/\//g, '_');
     };
 
-    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+
+ const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    // Clean private key - remove headers and normalize newlines
+    console.log("Encoded Header:", encodedHeader);
+    console.log("Encoded Payload:", encodedPayload);
+    console.log("Signature Input:", signatureInput);
+
     const cleanKey = PRIVATE_KEY
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
