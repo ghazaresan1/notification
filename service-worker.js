@@ -8,47 +8,39 @@ let activeUserFCMToken = null;
 let checkOrdersInterval;
 
 async function sendNotification(fcmToken) {
-    try {
-        const accessToken = await getGoogleAccessToken();
-        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-                message: {
-                    token: fcmToken,
+    const accessToken = await getGoogleAccessToken();
+    
+    const response = await fetch(`https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            message: {
+                token: fcmToken,
+                notification: {
+                    title: 'سفارش جدید',
+                    body: 'یک سفارش جدید در انتظار تایید دارید'
+                },
+                android: {
+                    priority: 'high',
                     notification: {
-                        title: 'سفارش جدید',
-                        body: 'یک سفارش جدید در انتظار تایید دارید'
-                    },
-                    android: {
-                        priority: 'high',
-                        notification: {
-                            channel_id: "orders_channel",
-                            click_action: "OPEN_ACTIVITY_1"
-                        }
-                    },
-                    data: {
-                        type: "new_order",
-                        timestamp: Date.now().toString()
+                        channel_id: "orders_channel"
                     }
                 }
-            })
-        });
+            }
+        })
+    });
 
-        const result = await response.json();
-       console.log("FCM Response Status:", response.status);
-console.log("FCM Response Full:", JSON.stringify(result, null, 2));
-console.log("FCM Token Used:", fcmToken);
-        return result;
-
-    } catch (error) {
-        console.error("Error sending notification:", error);
-        throw error;
-    }
+    // Log the complete response for verification
+    console.log("Access Token Used:", accessToken);
+    console.log("Complete FCM Response:", await response.json());
+    
+    return response;
 }
+
 
 
 async function getGoogleAccessToken() {
