@@ -43,90 +43,73 @@ async function sendNotification(fcmToken) {
 
 
 async function getGoogleAccessToken() {
-    console.log("Starting token generation...");
-    
     const now = Math.floor(Date.now() / 1000);
+    
     const header = {
         alg: 'RS256',
-        typ: 'JWT'
+        typ: 'JWT',
+        kid: CLIENT_EMAIL // Adding key ID back in
     };
 
     const payload = {
-        iss: CLIENT_EMAIL,
-        sub: CLIENT_EMAIL,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging',
         aud: 'https://oauth2.googleapis.com/token',
+        iss: CLIENT_EMAIL,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
         exp: now + 3600,
         iat: now
     };
 
-    console.log("JWT Header:", header);
-    console.log("JWT Payload:", payload);
-
-    const base64UrlEncode = (str) => {
-        return btoa(str)
+    const base64UrlEncode = (input) => {
+        const base64 = typeof input === 'string' 
+            ? btoa(input)
+            : btoa(String.fromCharCode(...input));
+        return base64
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=+$/, '');
     };
 
-    const pemContents = PRIVATE_KEY
-        .replace('-----BEGIN PRIVATE KEY-----', '')
-        .replace('-----END PRIVATE KEY-----', '')
-        .replace(/[\n\r\s]/g, '');
-    
-    console.log("Processed PEM length:", pemContents.length);
-    
-    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    console.log("Binary Key length:", binaryKey.length);
+    // Process private key
+    const keyData = atob(PRIVATE_KEY
+        .replace(/-----[^-]*-----/g, '')
+        .replace(/[\n\r\s]/g, ''));
+
+    const cryptoKey = await crypto.subtle.importKey(
+        'pkcs8',
+        new Uint8Array([...keyData].map(c => c.charCodeAt(0))),
+        {
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: { name: 'SHA-256' }
+        },
+        false,
+        ['sign']
+    );
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    console.log("Signature Input:", signatureInput);
+    const signatureBuffer = await crypto.subtle.sign(
+        'RSASSA-PKCS1-v1_5',
+        cryptoKey,
+        new TextEncoder().encode(signatureInput)
+    );
 
-    try {
-        const cryptoKey = await crypto.subtle.importKey(
-            'pkcs8',
-            binaryKey,
-            {
-                name: 'RSASSA-PKCS1-v1_5',
-                hash: { name: 'SHA-256' }
-            },
-            false,
-            ['sign']
-        );
+    const signature = base64UrlEncode(new Uint8Array(signatureBuffer));
+    const jwt = `${signatureInput}.${signature}`;
 
-        const signatureBuffer = await crypto.subtle.sign(
-            'RSASSA-PKCS1-v1_5',
-            cryptoKey,
-            new TextEncoder().encode(signatureInput)
-        );
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+    });
 
-        const signature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signatureBuffer)));
-        console.log("Generated Signature length:", signature.length);
-
-        const jwt = `${signatureInput}.${signature}`;
-        console.log("Final JWT length:", jwt.length);
-
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-        });
-
-        const data = await response.json();
-        console.log("Token Response:", JSON.stringify(data, null, 2));
-        
-        if (data.access_token) {
-            return data.access_token;
-        }
-        throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
-    } catch (error) {
-        console.log("Crypto operation error:", error);
-        throw error;
+    const data = await response.json();
+    
+    if (data.access_token) {
+        return data.access_token;
     }
+    throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
 
 
