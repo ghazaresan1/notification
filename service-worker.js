@@ -45,13 +45,7 @@ async function sendNotification(fcmToken) {
 
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
-    const header = {
-        alg: 'RS256',
-        typ: 'JWT',
-        kid: CLIENT_EMAIL
-    };
-    
-    const payload = {
+    const jwtPayload = {
         iss: CLIENT_EMAIL,
         sub: CLIENT_EMAIL,
         aud: 'https://oauth2.googleapis.com/token',
@@ -60,16 +54,8 @@ async function getGoogleAccessToken() {
         scope: 'https://www.googleapis.com/auth/firebase.messaging'
     };
 
-    const encodedHeader = btoa(JSON.stringify(header))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    
-    const encodedPayload = btoa(JSON.stringify(payload))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
+    const encodedHeader = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    const encodedPayload = btoa(JSON.stringify(jwtPayload));
     const signInput = `${encodedHeader}.${encodedPayload}`;
     const signature = await signWithPrivateKey(signInput, PRIVATE_KEY);
     const jwt = `${signInput}.${signature}`;
@@ -83,7 +69,12 @@ async function getGoogleAccessToken() {
     });
 
     const data = await tokenResponse.json();
-    console.log("Full Token Response:", data);
+    console.log("Token Response Data:", data);
+    
+    if (!data.access_token) {
+        throw new Error('Failed to obtain access token: ' + JSON.stringify(data));
+    }
+    
     return data.access_token;
 }
 
