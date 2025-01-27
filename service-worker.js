@@ -46,63 +46,68 @@ async function sendNotification(fcmToken) {
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
     
+    // Create JWT components
     const header = {
         alg: 'RS256',
-        typ: 'JWT'
+        typ: 'JWT',
+        kid: CLIENT_EMAIL  // Adding key ID
     };
 
     const payload = {
         iss: CLIENT_EMAIL,
+        sub: CLIENT_EMAIL, // Adding subject claim
         scope: 'https://www.googleapis.com/auth/firebase.messaging',
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
         iat: now
     };
 
-    const encodeSegment = (segment) => {
-        return btoa(JSON.stringify(segment))
+    // Base64Url encode function
+    const base64UrlEncode = (str) => {
+        const base64 = btoa(str);
+        return base64
+            .replace(/=/g, '')
             .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
+            .replace(/\//g, '_');
     };
 
-    const encodedHeader = encodeSegment(header);
-    const encodedPayload = encodeSegment(payload);
+    // Create JWT segments
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    // Extract the key content between the markers
-    const keyContent = PRIVATE_KEY
+    // Process private key
+    const keyData = atob(PRIVATE_KEY
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
-        .replace(/\s/g, '');
-    
-    // Convert base64 to binary
-    const binaryKey = Uint8Array.from(atob(keyContent), c => c.charCodeAt(0));
-    
-    const cryptoKey = await crypto.subtle.importKey(
+        .replace(/\s/g, ''));
+
+    // Import key and sign
+    const keyImport = await crypto.subtle.importKey(
         'pkcs8',
-        binaryKey,
+        new Uint8Array([...keyData].map(c => c.charCodeAt(0))),
         {
             name: 'RSASSA-PKCS1-v1_5',
-            hash: 'SHA-256'
+            hash: { name: 'SHA-256' }
         },
         false,
         ['sign']
     );
 
-    const signature = await crypto.subtle.sign(
-        'RSASSA-PKCS1-v1_5',
-        cryptoKey,
+    const signatureArray = await crypto.subtle.sign(
+        { name: 'RSASSA-PKCS1-v1_5' },
+        keyImport,
         new TextEncoder().encode(signatureInput)
     );
 
-    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    const signature = base64UrlEncode(
+        String.fromCharCode(...new Uint8Array(signatureArray))
+    );
 
-    const jwt = `${signatureInput}.${encodedSignature}`;
-    
+    // Combine JWT
+    const jwt = `${signatureInput}.${signature}`;
+
+    // Get token
     const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -110,13 +115,14 @@ async function getGoogleAccessToken() {
     });
 
     const data = await response.json();
-    console.log("Token Response:", data);
+    console.log("Complete Token Response:", JSON.stringify(data, null, 2));
     
     if (data.access_token) {
         return data.access_token;
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
+
 
 async function signWithPrivateKey(input, privateKey) {
     // Convert the input string to bytes
