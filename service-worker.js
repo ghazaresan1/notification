@@ -46,38 +46,45 @@ async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
     console.log("=== Starting JWT Generation ===");
     console.log("Timestamp:", now);
-    console.log("CLIENT_EMAIL:", CLIENT_EMAIL);
-    console.log("PRIVATE_KEY Structure:", {
-        length: PRIVATE_KEY.length,
-        hasBegin: PRIVATE_KEY.includes('BEGIN'),
-        hasEnd: PRIVATE_KEY.includes('END'),
-        lineCount: PRIVATE_KEY.split('\n').length
-    });
-    
+
     const header = {
         alg: 'RS256',
-        typ: 'JWT'
+        typ: 'JWT',
+        kid: CLIENT_EMAIL  // Adding key ID is required
     };
- console.log("Header:", JSON.stringify(header));
+
     const payload = {
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
         iat: now,
         iss: CLIENT_EMAIL,
+        sub: CLIENT_EMAIL,  // Adding subject claim
         scope: 'https://www.googleapis.com/auth/firebase.messaging'
     };
-    console.log("Payload:", JSON.stringify(payload));
 
+    console.log("JWT Components:", {
+        header: JSON.stringify(header),
+        payload: JSON.stringify(payload)
+    });
 
     const base64UrlEncode = (input) => {
         const base64 = typeof input === 'string' 
             ? btoa(input)
-            : btoa(String.fromCharCode.apply(null, input));
+            : btoa(String.fromCharCode.apply(null, new Uint8Array(input)));
         return base64
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=/g, '');
     };
+
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+    const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+    console.log("Encoded Components:", {
+        header: encodedHeader,
+        payload: encodedPayload
+    });
 
     const keyData = atob(PRIVATE_KEY
         .replace('-----BEGIN PRIVATE KEY-----', '')
@@ -85,15 +92,9 @@ async function getGoogleAccessToken() {
         .split('\n')
         .join(''));
 
-    const keyArray = new Uint8Array(keyData.length);
-
-    for (let i = 0; i < keyData.length; i++) {
-        keyArray[i] = keyData.charCodeAt(i);
-    }
-
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
-        keyArray,
+        new Uint8Array([...keyData].map(c => c.charCodeAt(0))),
         {
             name: 'RSASSA-PKCS1-v1_5',
             hash: { name: 'SHA-256' }
@@ -101,11 +102,6 @@ async function getGoogleAccessToken() {
         false,
         ['sign']
     );
- console.log("Processed Key Length:", keyArray.length);
-
-    const encodedHeader = base64UrlEncode(JSON.stringify(header));
-    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
     const signatureBuffer = await crypto.subtle.sign(
         'RSASSA-PKCS1-v1_5',
@@ -113,8 +109,13 @@ async function getGoogleAccessToken() {
         new TextEncoder().encode(signatureInput)
     );
 
-    const signature = base64UrlEncode(new Uint8Array(signatureBuffer));
+    const signature = base64UrlEncode(signatureBuffer);
     const jwt = `${signatureInput}.${signature}`;
+
+    console.log("Final JWT Structure:", {
+        totalLength: jwt.length,
+        parts: jwt.split('.').map(part => part.length)
+    });
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -123,18 +124,13 @@ async function getGoogleAccessToken() {
     });
 
     const data = await response.json();
-      console.log("Final JWT Length:", jwt.length);
-    console.log("JWT Structure:", {
-        headerLength: encodedHeader.length,
-        payloadLength: encodedPayload.length,
-        signatureLength: signature.length
-    });
+    console.log("Token Response:", data);
+
     if (data.access_token) {
         return data.access_token;
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
-
 
 async function signWithPrivateKey(input, privateKey) {
     // Convert the input string to bytes
