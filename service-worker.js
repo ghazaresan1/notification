@@ -71,13 +71,15 @@ async function getGoogleAccessToken() {
         payload: payload
     }, null, 2));
 
-    const base64UrlEncode = (str) => {
-        const utf8 = new TextEncoder().encode(str);
-        const base64 = btoa(String.fromCharCode(...utf8));
-        return base64
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
+    const base64UrlEncode = (input) => {
+        let bytes;
+        if (typeof input === 'string') {
+            bytes = new TextEncoder().encode(input);
+        } else {
+            bytes = new TextEncoder().encode(JSON.stringify(input));
+        }
+        const base64 = btoa(String.fromCharCode.apply(null, bytes));
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     };
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -90,40 +92,32 @@ async function getGoogleAccessToken() {
         signatureInput: signatureInput
     }, null, 2));
 
-    // Process private key
-    const pemContent = PRIVATE_KEY
-        .replace(/-----BEGIN.*?-----/, '')
-        .replace(/-----END.*?-----/, '')
-        .replace(/\s/g, '');
-    
-    console.log("Cleaned Key Length:", pemContent.length);
-    console.log("First 50 chars of cleaned key:", pemContent.substring(0, 50));
+    const keyBytes = new Uint8Array(
+        atob(PRIVATE_KEY.replace(/-----[^-]*-----/g, '').replace(/[\n\r\s]/g, ''))
+            .split('')
+            .map(c => c.charCodeAt(0))
+    );
 
-    const binaryKey = Uint8Array.from(atob(pemContent), c => c.charCodeAt(0));
-    console.log("Key Data Length:", binaryKey.length);
+    console.log("Key Data Length:", keyBytes.length);
 
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
-        binaryKey,
+        keyBytes.buffer,
         {
             name: 'RSASSA-PKCS1-v1_5',
-            hash: 'SHA-256'
+            hash: { name: 'SHA-256' }
         },
         false,
         ['sign']
     );
 
-    const signatureBytes = await crypto.subtle.sign(
-        'RSASSA-PKCS1-v1_5',
+    const signatureBuffer = await crypto.subtle.sign(
+        { name: 'RSASSA-PKCS1-v1_5' },
         cryptoKey,
         new TextEncoder().encode(signatureInput)
     );
 
-    const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
+    const signature = base64UrlEncode(new Uint8Array(signatureBuffer));
     const jwt = `${signatureInput}.${signature}`;
 
     console.log("Final JWT Details:", JSON.stringify({
