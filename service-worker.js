@@ -56,16 +56,14 @@ async function getGoogleAccessToken() {
     const header = {
         alg: 'RS256',
         typ: 'JWT'
-        // Removing kid as it's not required for Google OAuth
     };
 
     const payload = {
+        iss: CLIENT_EMAIL,
+        scope: 'https://www.googleapis.com/auth/firebase.messaging',
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
-        iat: now,
-        iss: CLIENT_EMAIL,
-        sub: CLIENT_EMAIL,
-        scope: 'https://www.googleapis.com/auth/firebase.messaging'
+        iat: now
     };
 
     console.log("JWT Components:", JSON.stringify({
@@ -73,22 +71,17 @@ async function getGoogleAccessToken() {
         payload: payload
     }, null, 2));
 
-    const base64UrlEncode = (input) => {
-        const utf8Encoder = new TextEncoder();
-        let data;
-        if (input instanceof ArrayBuffer) {
-            data = new Uint8Array(input);
-        } else if (typeof input === 'string') {
-            data = utf8Encoder.encode(input);
-        } else {
-            data = utf8Encoder.encode(JSON.stringify(input));
-        }
-        const base64 = btoa(String.fromCharCode.apply(null, data));
-        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const base64UrlEncode = (str) => {
+        const utf8 = new TextEncoder().encode(str);
+        const base64 = btoa(String.fromCharCode(...utf8));
+        return base64
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
     };
 
-    const encodedHeader = base64UrlEncode(header);
-    const encodedPayload = base64UrlEncode(payload);
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
     console.log("Encoded Components:", JSON.stringify({
@@ -97,34 +90,40 @@ async function getGoogleAccessToken() {
         signatureInput: signatureInput
     }, null, 2));
 
-    const cleanKey = PRIVATE_KEY
-        .replace('-----BEGIN PRIVATE KEY-----\n', '')
-        .replace('\n-----END PRIVATE KEY-----\n', '')
+    // Process private key
+    const pemContent = PRIVATE_KEY
+        .replace(/-----BEGIN.*?-----/, '')
+        .replace(/-----END.*?-----/, '')
         .replace(/\s/g, '');
-    console.log("Cleaned Key Length:", cleanKey.length);
-    console.log("First 50 chars of cleaned key:", cleanKey.substring(0, 50));
+    
+    console.log("Cleaned Key Length:", pemContent.length);
+    console.log("First 50 chars of cleaned key:", pemContent.substring(0, 50));
 
-    const keyData = new Uint8Array(atob(cleanKey).split('').map(c => c.charCodeAt(0)));
-    console.log("Key Data Length:", keyData.length);
+    const binaryKey = Uint8Array.from(atob(pemContent), c => c.charCodeAt(0));
+    console.log("Key Data Length:", binaryKey.length);
 
     const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
-        keyData.buffer,
+        binaryKey,
         {
             name: 'RSASSA-PKCS1-v1_5',
-            hash: { name: 'SHA-256' }
+            hash: 'SHA-256'
         },
         false,
         ['sign']
     );
 
-    const signatureBuffer = await crypto.subtle.sign(
+    const signatureBytes = await crypto.subtle.sign(
         'RSASSA-PKCS1-v1_5',
         cryptoKey,
         new TextEncoder().encode(signatureInput)
     );
 
-    const signature = base64UrlEncode(signatureBuffer);
+    const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
     const jwt = `${signatureInput}.${signature}`;
 
     console.log("Final JWT Details:", JSON.stringify({
