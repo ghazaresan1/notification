@@ -24,17 +24,30 @@ async function sendNotification(fcmToken) {
                         body: 'یک سفارش جدید در انتظار تایید دارید'
                     },
                     android: {
-                        priority: 'high'
+                        priority: 'high',
+                        notification: {
+                            channel_id: "orders_channel",
+                            click_action: "OPEN_ACTIVITY_1"
+                        }
+                    },
+                    data: {
+                        type: "new_order",
+                        timestamp: Date.now().toString()
                     }
                 }
             })
         });
-        return response.json();
+
+        const result = await response.json();
+        console.log("FCM Send Result:", result);
+        return result;
+
     } catch (error) {
         console.error("Error sending notification:", error);
         throw error;
     }
 }
+
 
 async function getGoogleAccessToken() {
     const now = Math.floor(Date.now() / 1000);
