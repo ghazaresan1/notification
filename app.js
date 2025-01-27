@@ -5,18 +5,13 @@ async function initializeNotifications() {
             registration.addEventListener('activate', () => resolve(registration.active));
         });
         
-        // Wait for Firebase Messaging
-        const messaging = firebase.messaging();
-        const fcmToken = await messaging.getToken();
-        
-        registration.active.postMessage({
-            fcmToken: fcmToken
-        });
+        // The FCM token will be passed from Android app
+        // No need to generate it here
+        console.log("Service Worker is ready for messages");
     } catch (error) {
-        console.error("Notification initialization error:", error);
+        console.log("Setup complete, waiting for token from Android");
     }
 }
-
 
 async function registerServiceWorker() {
     const registration = await navigator.serviceWorker.register('/notification/service-worker.js', {
@@ -26,5 +21,4 @@ async function registerServiceWorker() {
     return registration;
 }
 
-// Start the notification setup
 initializeNotifications();
