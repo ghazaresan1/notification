@@ -44,6 +44,13 @@ async function sendNotification(fcmToken) {
 
 
 async function getGoogleAccessToken() {
+console.log("Starting token generation...");
+    console.log("CLIENT_EMAIL:", CLIENT_EMAIL);
+    console.log("PRIVATE_KEY length:", PRIVATE_KEY.length);
+    console.log("PRIVATE_KEY first 100 chars:", PRIVATE_KEY.substring(0, 100));
+    console.log("Current timestamp:", Math.floor(Date.now() / 1000));
+
+
     const now = Math.floor(Date.now() / 1000);
     
     // Create JWT components
