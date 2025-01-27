@@ -42,34 +42,30 @@ async function sendNotification(fcmToken) {
 }
 
 
-
 async function getGoogleAccessToken() {
-console.log("Starting token generation...");
+    console.log("Starting token generation...");
     console.log("CLIENT_EMAIL:", CLIENT_EMAIL);
     console.log("PRIVATE_KEY length:", PRIVATE_KEY.length);
     console.log("PRIVATE_KEY first 100 chars:", PRIVATE_KEY.substring(0, 100));
     console.log("Current timestamp:", Math.floor(Date.now() / 1000));
 
-
     const now = Math.floor(Date.now() / 1000);
     
-    // Create JWT components
     const header = {
         alg: 'RS256',
         typ: 'JWT',
-        kid: CLIENT_EMAIL  // Adding key ID
+        kid: CLIENT_EMAIL
     };
 
     const payload = {
         iss: CLIENT_EMAIL,
-        sub: CLIENT_EMAIL, // Adding subject claim
+        sub: CLIENT_EMAIL,
         scope: 'https://www.googleapis.com/auth/firebase.messaging',
         aud: 'https://oauth2.googleapis.com/token',
         exp: now + 3600,
         iat: now
     };
 
-    // Base64Url encode function
     const base64UrlEncode = (str) => {
         const base64 = btoa(str);
         return base64
@@ -78,18 +74,20 @@ console.log("Starting token generation...");
             .replace(/\//g, '_');
     };
 
-    // Create JWT segments
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    // Process private key
-    const keyData = atob(PRIVATE_KEY
+    // Clean private key - remove headers and normalize newlines
+    const cleanKey = PRIVATE_KEY
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
-        .replace(/\s/g, ''));
+        .split('\n')
+        .map(line => line.trim())
+        .join('');
 
-    // Import key and sign
+    const keyData = atob(cleanKey);
+    
     const keyImport = await crypto.subtle.importKey(
         'pkcs8',
         new Uint8Array([...keyData].map(c => c.charCodeAt(0))),
@@ -111,10 +109,10 @@ console.log("Starting token generation...");
         String.fromCharCode(...new Uint8Array(signatureArray))
     );
 
-    // Combine JWT
     const jwt = `${signatureInput}.${signature}`;
 
-    // Get token
+    console.log("JWT Components Generated Successfully");
+    
     const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -129,6 +127,7 @@ console.log("Starting token generation...");
     }
     throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
+
 
 
 async function signWithPrivateKey(input, privateKey) {
