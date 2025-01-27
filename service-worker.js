@@ -60,6 +60,9 @@ async function getGoogleAccessToken() {
         iat: now
     };
 
+    console.log("JWT Header:", header);
+    console.log("JWT Payload:", payload);
+
     const base64UrlEncode = (str) => {
         return btoa(str)
             .replace(/\+/g, '-')
@@ -67,53 +70,64 @@ async function getGoogleAccessToken() {
             .replace(/=+$/, '');
     };
 
-    // Convert PEM key to binary
     const pemContents = PRIVATE_KEY
         .replace('-----BEGIN PRIVATE KEY-----', '')
         .replace('-----END PRIVATE KEY-----', '')
         .replace(/[\n\r\s]/g, '');
     
-    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    console.log("Processed PEM length:", pemContents.length);
     
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    console.log("Binary Key length:", binaryKey.length);
+
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const signatureInput = `${encodedHeader}.${encodedPayload}`;
 
-    const cryptoKey = await crypto.subtle.importKey(
-        'pkcs8',
-        binaryKey,
-        {
-            name: 'RSASSA-PKCS1-v1_5',
-            hash: { name: 'SHA-256' }
-        },
-        false,
-        ['sign']
-    );
+    console.log("Signature Input:", signatureInput);
 
-    const signatureBuffer = await crypto.subtle.sign(
-        'RSASSA-PKCS1-v1_5',
-        cryptoKey,
-        new TextEncoder().encode(signatureInput)
-    );
+    try {
+        const cryptoKey = await crypto.subtle.importKey(
+            'pkcs8',
+            binaryKey,
+            {
+                name: 'RSASSA-PKCS1-v1_5',
+                hash: { name: 'SHA-256' }
+            },
+            false,
+            ['sign']
+        );
 
-    const signature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signatureBuffer)));
-    const jwt = `${signatureInput}.${signature}`;
+        const signatureBuffer = await crypto.subtle.sign(
+            'RSASSA-PKCS1-v1_5',
+            cryptoKey,
+            new TextEncoder().encode(signatureInput)
+        );
 
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-    });
+        const signature = base64UrlEncode(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+        console.log("Generated Signature length:", signature.length);
 
-    const data = await response.json();
-    console.log("Complete Token Response:", JSON.stringify(data, null, 2));
-    
-    if (data.access_token) {
-        return data.access_token;
+        const jwt = `${signatureInput}.${signature}`;
+        console.log("Final JWT length:", jwt.length);
+
+        const response = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+        });
+
+        const data = await response.json();
+        console.log("Token Response:", JSON.stringify(data, null, 2));
+        
+        if (data.access_token) {
+            return data.access_token;
+        }
+        throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
+    } catch (error) {
+        console.log("Crypto operation error:", error);
+        throw error;
     }
-    throw new Error(`Token generation failed: ${JSON.stringify(data)}`);
 }
-
 
 
 async function signWithPrivateKey(input, privateKey) {
