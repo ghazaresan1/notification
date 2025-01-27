@@ -95,42 +95,45 @@ async function getGoogleAccessToken() {
 
 
 async function signWithPrivateKey(input, privateKey) {
-    // Remove quotes and convert PEM to binary
-    const pemContent = privateKey.replace(/"/g, '');
-    const pemHeader = '-----BEGIN PRIVATE KEY-----';
-    const pemFooter = '-----END PRIVATE KEY-----';
-    const pemContents = pemContent
-        .replace(pemHeader, '')
-        .replace(pemFooter, '')
-        .replace(/\n/g, '');
+    // Convert the input string to bytes
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
     
-    // Convert base64 to binary
+    // Clean and format the private key
+    const pemContents = privateKey
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .replace(/\s/g, '');
+    
+    // Convert the key to binary format
     const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
     
-    const algorithm = {
-        name: 'RSASSA-PKCS1-v1_5',
-        hash: {name: 'SHA-256'},
-    };
-    
-    const extractedKey = await crypto.subtle.importKey(
+    // Import the key with specific algorithm parameters
+    const cryptoKey = await crypto.subtle.importKey(
         'pkcs8',
         binaryKey,
-        algorithm,
+        {
+            name: 'RSASSA-PKCS1-v1_5',
+            hash: { name: 'SHA-256' }
+        },
         false,
         ['sign']
     );
     
-    const encoder = new TextEncoder();
-    const data = encoder.encode(input);
-    
+    // Generate the signature
     const signature = await crypto.subtle.sign(
-        algorithm,
-        extractedKey,
+        { name: 'RSASSA-PKCS1-v1_5' },
+        cryptoKey,
         data
     );
     
-    return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    // Convert signature to base64
+    return btoa(String.fromCharCode(...new Uint8Array(signature)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 }
+
 
 async function login(username, password) {
     try {
